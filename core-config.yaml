@@ -1,0 +1,41 @@
+# Application Information
+app:
+  name: "GrantMS"
+  version: "1.0.0"
+  logo: "static/images/logo.png"
+
+# Environment Configurations
+environments:
+  development:
+    flask:
+      debug: true
+      secret_key: "grantms-#24n-25y-roadmap-dev"
+      host: "0.0.0.0"
+      port: 5000
+    
+    database:
+      type: "mysql"
+      driver: "pymysql"
+      host: "localhost"
+      port: 3306
+      name: "grant_roadmap"
+      username: "root"
+      password: "Tracerent"
+      charset: "utf8mb4"
+
+  production:
+    flask:
+      debug: false
+      secret_key: "grantms-#24n-25y-roadmap-prod"
+      host: "0.0.0.0"
+      port: 8000
+    
+    database:
+      type: "mysql"
+      driver: "pymysql"
+      host: "localhost"
+      port: 3306
+      name: "grant_roadmap"
+      username: "root"
+      password: "Tracerent"
+      charset: "utf8mb4"

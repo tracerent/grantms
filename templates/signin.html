@@ -1,0 +1,74 @@
+{% extends "layout.html" %}
+
+{% block title %}Sign In - Grant Roadmap{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+    <div class="container">
+        <div class="row justify-content-center align-items-center" style="min-height: 80vh;">
+            <div class="col-md-6 col-lg-5">
+                <div class="auth-card">
+                    <div class="text-center mb-4">
+                        <h2 class="fw-bold">Welcome Back</h2>
+                        <p class="text-muted">Sign in to access your grants</p>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('signin') }}">
+                        <div class="mb-3">
+                            <label class="form-label" for="username">Username</label>
+                            <input 
+                                type="text" 
+                                class="form-control form-control-lg" 
+                                id="username" 
+                                name="username" 
+                                placeholder="Your username"
+                                required
+                            />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="password">Password</label>
+                            <input 
+                                type="password" 
+                                class="form-control form-control-lg" 
+                                id="password" 
+                                name="password" 
+                                placeholder="••••••••"
+                                required
+                            />
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <input 
+                                type="checkbox" 
+                                class="form-check-input" 
+                                id="remember" 
+                                name="remember"
+                            />
+                            <label class="form-check-label" for="remember">
+                                Remember me
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-lg w-100 mb-3">
+                            Sign In
+                        </button>
+                    </form>
+
+                    <div class="text-center">
+                        <p class="text-muted">
+                            <a href="#" class="text-decoration-none">Forgot your password?</a>
+                        </p>
+                    </div>
+
+                    <div class="text-center mt-4 pt-3 border-top">
+                        <p class="text-muted">Don't have an account? 
+                            <a href="{{ url_for('signup') }}" class="text-decoration-none fw-bold">Sign Up</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,358 @@
+{% extends "layout.html" %}
+
+{% block title %}Dashboard - Grant Roadmap{% endblock %}
+
+{% block content %}
+<div class="dashboard-page">
+    <div class="container-fluid">
+        <!-- Header -->
+        <div class="dashboard-header bg-light border-bottom py-4 mb-4">
+            <div class="container">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h1 class="fw-bold mb-1">Welcome, {{ user['username'] }}!</h1>
+                        <p class="text-muted mb-0">{{ user['company_name'] or 'Complete your profile' }}</p>
+                    </div>
+                    <div class="col-auto">
+                        <a href="#profileModal" class="btn btn-outline-primary" data-bs-toggle="modal">
+                            Edit Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <!-- Stats Row -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-number">{{ user_grants|length }}</div>
+                        <div class="stat-label">Applications</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-number">{{ favorites|length }}</div>
+                        <div class="stat-label">Saved Grants</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-number" id="inProgressCount">0</div>
+                        <div class="stat-label">In Progress</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-number" id="approvedCount">0</div>
+                        <div class="stat-label">Approved</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabs Navigation -->
+            <ul class="nav nav-tabs mb-4" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="my-grants-tab" data-bs-toggle="tab" 
+                            data-bs-target="#my-grants" type="button" role="tab">
+                        My Applications
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="favorites-tab" data-bs-toggle="tab" 
+                            data-bs-target="#favorites" type="button" role="tab">
+                        Saved Grants ({{ favorites|length }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="all-grants-tab" data-bs-toggle="tab" 
+                            data-bs-target="#all-grants" type="button" role="tab">
+                        All Grants
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Tab Content -->
+            <div class="tab-content">
+                <!-- My Applications Tab -->
+                <div class="tab-pane fade show active" id="my-grants" role="tabpanel">
+                    {% if user_grants %}
+                        <div class="row g-4">
+                            {% for grant in user_grants %}
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="grant-card">
+                                        <div class="grant-header">
+                                            <h5 class="grant-title">{{ grant['title'] }}</h5>
+                                            <span class="status-badge status-{{ grant['status']|lower|replace(' ', '-') }}">
+                                                {{ grant['status'] }}
+                                            </span>
+                                        </div>
+                                        <p class="text-muted small">{{ grant['agency'] }}</p>
+                                        <p class="grant-description">{{ grant['description'][:100] }}...</p>
+                                        
+                                        <div class="grant-details mb-3">
+                                            <div class="detail-item">
+                                                <span class="label">Funding:</span>
+                                                <span class="value">${{ "{:,.0f}".format(grant['funding_amount']) }}</span>
+                                            </div>
+                                            <div class="detail-item">
+                                                <span class="label">Deadline:</span>
+                                                <span class="value">{{ grant['deadline'] }}</span>
+                                            </div>
+                                            <div class="detail-item">
+                                                <span class="label">Applied:</span>
+                                                <span class="value">{{ grant['applied_date'][:10] }}</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Update Status Dropdown -->
+                                        <div class="mb-3">
+                                            <select class="form-select form-select-sm status-update" 
+                                                    data-grant-id="{{ grant['id'] }}">
+                                                <option value="Applied" {% if grant['status'] == 'Applied' %}selected{% endif %}>Applied</option>
+                                                <option value="In Progress" {% if grant['status'] == 'In Progress' %}selected{% endif %}>In Progress</option>
+                                                <option value="Awaiting Review" {% if grant['status'] == 'Awaiting Review' %}selected{% endif %}>Awaiting Review</option>
+                                                <option value="Approved" {% if grant['status'] == 'Approved' %}selected{% endif %}>Approved</option>
+                                                <option value="Rejected" {% if grant['status'] == 'Rejected' %}selected{% endif %}>Rejected</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="d-flex gap-2">
+                                            <a href="{{ grant['url'] }}" target="_blank" class="btn btn-sm btn-primary flex-grow-1">
+                                                View Grant
+                                            </a>
+                                            <button class="btn btn-sm btn-outline-secondary remove-grant" data-grant-id="{{ grant['id'] }}">
+                                                Remove
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <h5>No applications yet</h5>
+                            <p>Start applying for grants! Go to "All Grants" tab to find opportunities.</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Favorites Tab -->
+                <div class="tab-pane fade" id="favorites" role="tabpanel">
+                    {% if favorites %}
+                        <div class="row g-4">
+                            {% for grant in favorites %}
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="grant-card favorite-card">
+                                        <div class="grant-header">
+                                            <h5 class="grant-title">{{ grant['title'] }}</h5>
+                                            <i class="fas fa-star text-warning"></i>
+                                        </div>
+                                        <p class="text-muted small">{{ grant['agency'] }}</p>
+                                        <p class="grant-description">{{ grant['description'][:100] }}...</p>
+                                        
+                                        <div class="grant-details mb-3">
+                                            <div class="detail-item">
+                                                <span class="label">Funding:</span>
+                                                <span class="value">${{ "{:,.0f}".format(grant['funding_amount']) }}</span>
+                                            </div>
+                                            <div class="detail-item">
+                                                <span class="label">Deadline:</span>
+                                                <span class="value">{{ grant['deadline'] }}</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="d-flex gap-2">
+                                            <button class="btn btn-sm btn-primary flex-grow-1 apply-grant" data-grant-id="{{ grant['id'] }}">
+                                                Apply Now
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-warning toggle-favorite" data-grant-id="{{ grant['id'] }}">
+                                                ★
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <h5>No saved grants</h5>
+                            <p>Find and save grants you're interested in!</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- All Grants Tab -->
+                <div class="tab-pane fade" id="all-grants" role="tabpanel">
+                    <div class="mb-3">
+                        <input type="text" class="form-control" id="grantSearch" placeholder="Search grants by title or description...">
+                    </div>
+                    <div class="row g-4" id="grantsContainer">
+                        {% for grant in all_grants %}
+                            <div class="col-md-6 col-lg-4 grant-item" data-title="{{ grant['title']|lower }}" data-desc="{{ grant['description']|lower }}">
+                                <div class="grant-card">
+                                    <div class="grant-header">
+                                        <h5 class="grant-title">{{ grant['title'] }}</h5>
+                                        {% set is_favorite = grant['id'] in [f['id'] for f in favorites] %}
+                                        {% set is_applied = grant['id'] in [g['id'] for g in user_grants] %}
+                                    </div>
+                                    <p class="text-muted small">{{ grant['agency'] }}</p>
+                                    <p class="grant-description">{{ grant['description'][:100] }}...</p>
+                                    
+                                    <div class="grant-details mb-3">
+                                        <div class="detail-item">
+                                            <span class="label">Funding:</span>
+                                            <span class="value">${{ "{:,.0f}".format(grant['funding_amount']) }}</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <span class="label">Deadline:</span>
+                                            <span class="value">{{ grant['deadline'] }}</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <span class="label">Category:</span>
+                                            <span class="value">{{ grant['category'] }}</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex gap-2">
+                                        {% if is_applied %}
+                                            <button class="btn btn-sm btn-success flex-grow-1" disabled>Applied</button>
+                                        {% else %}
+                                            <button class="btn btn-sm btn-primary flex-grow-1 apply-grant" data-grant-id="{{ grant['id'] }}">
+                                                Apply Now
+                                            </button>
+                                        {% endif %}
+                                        <button class="btn btn-sm btn-outline-warning toggle-favorite" data-grant-id="{{ grant['id'] }}" 
+                                                data-favorite="{% if is_favorite %}true{% else %}false{% endif %}">
+                                            {% if is_favorite %}★{% else %}☆{% endif %}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div class="modal fade" id="profileModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Profile</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="{{ url_for('update_profile') }}">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Company Name</label>
+                            <input type="text" class="form-control" value="{{ user['company_name'] or '' }}" disabled>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Company Description</label>
+                            <textarea class="form-control" name="company_description" rows="4">{{ user['company_description'] or '' }}</textarea>
+                            <small class="text-muted">This helps us match you with relevant grants</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Apply for grant
+    document.querySelectorAll('.apply-grant').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const grantId = this.dataset.grantId;
+            fetch('/apply-grant', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ grant_id: grantId })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Grant application started!');
+                    location.reload();
+                }
+            })
+            .catch(e => console.error(e));
+        });
+    });
+
+    // Toggle favorite
+    document.querySelectorAll('.toggle-favorite').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const grantId = this.dataset.grantId;
+            fetch('/toggle-favorite', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ grant_id: grantId })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    this.textContent = this.textContent === '★' ? '☆' : '★';
+                }
+            })
+            .catch(e => console.error(e));
+        });
+    });
+
+    // Update status dropdown
+    document.querySelectorAll('.status-update').forEach(select => {
+        select.addEventListener('change', function() {
+            const grantId = this.dataset.grantId;
+            const status = this.value;
+            fetch('/update-grant-status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ grant_id: grantId, status: status })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Status updated');
+                }
+            })
+            .catch(e => console.error(e));
+        });
+    });
+
+    // Grant search
+    document.getElementById('grantSearch').addEventListener('keyup', function(e) {
+        const query = e.target.value.toLowerCase();
+        document.querySelectorAll('.grant-item').forEach(item => {
+            const title = item.dataset.title;
+            const desc = item.dataset.desc;
+            if (title.includes(query) || desc.includes(query)) {
+                item.style.display = '';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    });
+
+    // Update stats
+    function updateStats() {
+        const inProgress = {{ user_grants|length if user_grants else 0 }};
+        document.getElementById('inProgressCount').textContent = inProgress;
+    }
+
+    updateStats();
+</script>
+{% endblock %}

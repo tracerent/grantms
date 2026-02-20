@@ -1,0 +1,495 @@
+{% extends "layout.html" %}
+
+{% block title %}Home - Grant Roadmap{% endblock %}
+
+{% block content %}
+<div class="home-page">
+    <!-- Hero Section with Dynamic Text -->
+    <section id="services" class="hero-section py-5">
+        <div class="container">
+            <div class="hero-container">
+                <div class="hero-left">
+                    <h1>
+                        <span class="main-text">We Help You Access The</span><br>
+                        <span class="dynamic-text">
+                            <span class="text-item active">Grants</span>
+                            <span class="text-item">Funds</span>
+                            <span class="text-item">Money</span>
+                            <span class="text-item">Tax Credits</span>
+                        </span>
+                        <span class="main-text">You Deserve</span>
+                    </h1>
+                    <p class="lead">
+                        The Grant Roadmap is an AI-powered platform that connects you with the best 
+                        non-dilutive funding opportunities — helping you apply quickly and get approved faster
+                    </p>
+                    
+                    <!-- Customer Count Badge -->
+                    <div class="customers-badge">
+                        <strong>50K+</strong> Customers
+                    </div>
+                </div>
+
+                <div class="hero-right">
+                    <div class="hero-image-placeholder">
+                        <img src="{{ url_for('static', filename='image/hero.png') }}" alt="Hero" style="width: 100%; height: 100%; object-fit: cover; border-radius: 16px; position: absolute; top: 0; left: 0;">
+                        <div class="overlay-tile matches">
+                            <div class="number">70+</div>
+                            <div class="label">Matches</div>
+                        </div>
+                        <div class="overlay-tile funded">
+                            <div class="amount">$30K</div>
+                            <div class="label">Funded!</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 7-Step Grant Success System -->
+    <section id="success-system" class="success-system">
+        <div class="container">
+            <div class="success-system-row">
+                <div class="success-text">
+                    <h2>The 7-Step Grant Success System</h2>
+                    <p>We have curated an industry-first 7-step proprietary grant management system to enable businesses to access all the resources they need to find funding and receive the support required to grow strategically.</p>
+                    <a href="{{ url_for('signup') }}" class="btn btn-primary btn-lg mt-3">
+                        Sign Up to Get Access Now!
+                    </a>
+                </div>
+                <div class="success-image">
+                    <img src="{{ url_for('static', filename='image/steps.png') }}" alt="7-Step Grant Success System" style="width: 100%; height: 100%; object-fit: contain;">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Plans Section -->
+    <section id="plans" class="plans-section">
+        <div class="container">
+            <h2 class="text-center fw-bold">Choose Your Plan</h2>
+            
+            <!-- Primary Plans -->
+            <div class="row g-4 mb-5">
+                <!-- Basic Plan -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="plan-card basic-plan">
+                        <div class="free-trial-badge">Free Trial</div>
+                        <div class="plan-header">
+                            <h4>Basic Plan</h4>
+                            <p class="plan-billing">Billed Yearly</p>
+                        </div>
+                        <div class="plan-price">
+                            <span class="price-amount">C$0</span>
+                            <span class="price-period">/mo</span>
+                        </div>
+                        <ul class="plan-features">
+                            <li>1 team member</li>
+                            <li>1 Week access</li>
+                            <li>Grants listing access</li>
+                            <li>FAQs on grants</li>
+                            <li>Grants dashboard</li>
+                            <li>Consulting services</li>
+                        </ul>
+                        <a href="{{ url_for('signup') }}" class="btn btn-outline-primary w-100">Get Started</a>
+                    </div>
+                </div>
+
+                <!-- Success Plan -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="plan-card success-plan featured">
+                        <div class="featured-badge">Most Popular</div>
+                        <div class="plan-header">
+                            <h4>Success Plan</h4>
+                            <p class="plan-billing">Billed Yearly</p>
+                        </div>
+                        <div class="plan-price">
+                            <span class="price-amount">C$59</span>
+                            <span class="price-period">/mo</span>
+                        </div>
+                        <ul class="plan-features">
+                            <li>Up to 3 team members</li>
+                            <li>Grant management dashboard</li>
+                            <li>Grants stages tracking system</li>
+                            <li>Funding contacts management</li>
+                            <li>Templates for Grant documents</li>
+                            <li>Access to service provider network</li>
+                            <li>Grant writing assistance</li>
+                            <li>Notifications & reminders</li>
+                        </ul>
+                        <a href="{{ url_for('signup') }}" class="btn btn-primary w-100">Get Started</a>
+                    </div>
+                </div>
+
+                <!-- Premium Plan -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="plan-card premium-plan">
+                        <div class="plan-header">
+                            <h4>Premium Plan</h4>
+                            <p class="plan-billing">Billed Yearly</p>
+                        </div>
+                        <div class="plan-price">
+                            <span class="price-amount">C$99</span>
+                            <span class="price-period">/mo</span>
+                        </div>
+                        <ul class="plan-features">
+                            <li>Up to 5 team members</li>
+                            <li>Everything from Success Plan</li>
+                            <li>One-on-one strategy sessions</li>
+                            <li>Curated grant opportunities</li>
+                            <li>Grant capture estimate (for investors)</li>
+                            <li>AI Grant Writing Assistant</li>
+                            <li>Upload your own grants</li>
+                            <li>Direct connection to key service providers</li>
+                        </ul>
+                        <a href="{{ url_for('signup') }}" class="btn btn-outline-primary w-100">Get Started</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Plans -->
+            <div class="row g-4 mb-4">
+                <!-- Fractional Plan -->
+                <div class="col-md-6">
+                    <div class="plan-card additional-plan">
+                        <div class="plan-header">
+                            <h4>Fractional Plan</h4>
+                            <p class="plan-pricing-text">Contact for Pricing</p>
+                        </div>
+                        <ul class="plan-features">
+                            <li>Hands-on grant support</li>
+                            <li>Dedicated grant advisor</li>
+                            <li>Custom grant strategy & planning</li>
+                            <li>Grant writer assigned long-term</li>
+                            <li>Application process management</li>
+                            <li>Connect to expert resources</li>
+                            <li>Investor grade documentation support</li>
+                            <li>Fractional team member approach</li>
+                        </ul>
+                        <a href="{{ url_for('contact', type='quote') }}" class="btn btn-outline-secondary w-100">Request a Quote</a>
+                    </div>
+                </div>
+
+                <!-- Associate Plan -->
+                <div class="col-md-6">
+                    <div class="plan-card additional-plan">
+                        <div class="plan-header">
+                            <h4>Associate Plan</h4>
+                            <p class="plan-pricing-text">Contact for Pricing</p>
+                        </div>
+                        <ul class="plan-features">
+                            <li>For associates, universities, accelerators</li>
+                            <li>Custom plan for member communities</li>
+                            <li>Optional discount or revenue share</li>
+                            <li>Speaking engagements available</li>
+                            <li>Grant education & access tools</li>
+                            <li>Custom insights & reporting</li>
+                        </ul>
+                        <a href="{{ url_for('contact', type='quote') }}" class="btn btn-outline-secondary w-100">Contact Sales</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Plan Comparison Button -->
+            <div class="text-center mb-4">
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#comparisonModal">
+                    Show Full Plan Comparison
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Plan Comparison Modal -->
+    <div class="modal fade" id="comparisonModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Plan Comparison</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Feature</th>
+                                    <th class="text-center">Basic</th>
+                                    <th class="text-center">Success</th>
+                                    <th class="text-center">Premium</th>
+                                    <th class="text-center">Fractional</th>
+                                    <th class="text-center">Associate</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Monthly Cost</strong></td>
+                                    <td class="text-center">$0</td>
+                                    <td class="text-center">$59</td>
+                                    <td class="text-center">$99</td>
+                                    <td class="text-center">Custom</td>
+                                    <td class="text-center">Custom</td>
+                                </tr>
+                                <tr>
+                                    <td>Smart Matching</td>
+                                    <td class="text-center">✓</td>
+                                    <td class="text-center">✓ Advanced</td>
+                                    <td class="text-center">✓ Advanced</td>
+                                    <td class="text-center">✓ Advanced</td>
+                                    <td class="text-center">✓ Advanced</td>
+                                </tr>
+                                <tr>
+                                    <td>Team Members</td>
+                                    <td class="text-center">1</td>
+                                    <td class="text-center">3</td>
+                                    <td class="text-center">10</td>
+                                    <td class="text-center">Custom</td>
+                                    <td class="text-center">Custom</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resources Section -->
+    <section id="resources" class="resources-section py-5 bg-light">
+        <div class="container">
+            <h2 class="text-center fw-bold mb-5">Explore Our Resources</h2>
+            <div class="row g-4">
+                <!-- R&D Resources -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 resource-card shadow-sm" style="position: relative;">
+                        <div class="card-body d-flex flex-column">
+                            <h4 class="card-title fw-bold mb-2">🧪 {{ resources.rd.name }}</h4>
+                            <p class="card-text text-muted flex-grow-1 mb-3" style="font-size: 0.95rem;">
+                                {{ resources.rd.description }}
+                            </p>
+                            
+                            <!-- Document and Video Labels -->
+                            <div class="d-flex gap-2 mb-3">
+                                <span class="badge bg-light text-dark border border-secondary">
+                                    <i class="bi bi-file-pdf"></i> {{ resources.rd.documents }} Documents
+                                </span>
+                                <span class="badge bg-light text-dark border border-secondary">
+                                    <i class="bi bi-play-circle"></i> {{ resources.rd.videos }} Videos
+                                </span>
+                            </div>
+                            
+                            <!-- Button -->
+                            <a href="{{ url_for('signup') }}" class="btn btn-outline-primary btn-sm align-self-start">
+                                Explore Resources <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Expert Resources -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 resource-card shadow-sm" style="position: relative;">
+                        <div class="card-body d-flex flex-column">
+                            <h4 class="card-title fw-bold mb-2">👨‍💼 {{ resources.expert.name }}</h4>
+                            <p class="card-text text-muted flex-grow-1 mb-3" style="font-size: 0.95rem;">
+                                {{ resources.expert.description }}
+                            </p>
+                            
+                            <!-- Document and Video Labels -->
+                            <div class="d-flex gap-2 mb-3">
+                                <span class="badge bg-light text-dark border border-secondary">
+                                    <i class="bi bi-file-pdf"></i> {{ resources.expert.documents }} Documents
+                                </span>
+                                <span class="badge bg-light text-dark border border-secondary">
+                                    <i class="bi bi-play-circle"></i> {{ resources.expert.videos }} Videos
+                                </span>
+                            </div>
+                            
+                            <!-- Button -->
+                            <a href="{{ url_for('signup') }}" class="btn btn-outline-primary btn-sm align-self-start">
+                                Explore Resources <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hiring Resources -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 resource-card shadow-sm" style="position: relative;">
+                        <div class="card-body d-flex flex-column">
+                            <h4 class="card-title fw-bold mb-2">💼 {{ resources.hiring.name }}</h4>
+                            <p class="card-text text-muted flex-grow-1 mb-3" style="font-size: 0.95rem;">
+                                {{ resources.hiring.description }}
+                            </p>
+                            
+                            <!-- Document and Video Labels -->
+                            <div class="d-flex gap-2 mb-3">
+                                <span class="badge bg-light text-dark border border-secondary">
+                                    <i class="bi bi-file-pdf"></i> {{ resources.hiring.documents }} Documents
+                                </span>
+                                <span class="badge bg-light text-dark border border-secondary">
+                                    <i class="bi bi-play-circle"></i> {{ resources.hiring.videos }} Videos
+                                </span>
+                            </div>
+                            
+                            <!-- Button -->
+                            <a href="{{ url_for('signup') }}" class="btn btn-outline-primary btn-sm align-self-start">
+                                Explore Resources <i class="bi bi-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Training Resources -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 resource-card shadow-sm" style="position: relative;">
+                        <div class="position-absolute top-0 end-0 p-2">
+                            <span class="badge bg-warning text-dark">Coming Soon</span>
+                        </div>
+                        <div class="card-body d-flex flex-column">
+                            <h4 class="card-title fw-bold mb-2">📚 {{ resources.training.name }}</h4>
+                            <p class="card-text text-muted flex-grow-1 mb-3" style="font-size: 0.95rem;">
+                                {{ resources.training.description }}
+                            </p>
+                            
+                            <!-- Document and Video Labels -->
+                            <div class="d-flex gap-2 mb-3">
+                                <span class="badge bg-light text-dark border border-secondary">
+                                    <i class="bi bi-file-pdf"></i> 0 Documents
+                                </span>
+                                <span class="badge bg-light text-dark border border-secondary">
+                                    <i class="bi bi-play-circle"></i> 0 Videos
+                                </span>
+                            </div>
+                            
+                            <!-- Button (Disabled) -->
+                            <button class="btn btn-secondary btn-sm align-self-start" disabled>
+                                Coming Soon
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Expansion Resources -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 resource-card shadow-sm" style="position: relative;">
+                        <div class="position-absolute top-0 end-0 p-2">
+                            <span class="badge bg-warning text-dark">Coming Soon</span>
+                        </div>
+                        <div class="card-body d-flex flex-column">
+                            <h4 class="card-title fw-bold mb-2">📈 {{ resources.expansion.name }}</h4>
+                            <p class="card-text text-muted flex-grow-1 mb-3" style="font-size: 0.95rem;">
+                                {{ resources.expansion.description }}
+                            </p>
+                            
+                            <!-- Document and Video Labels -->
+                            <div class="d-flex gap-2 mb-3">
+                                <span class="badge bg-light text-dark border border-secondary">
+                                    <i class="bi bi-file-pdf"></i> 0 Documents
+                                </span>
+                                <span class="badge bg-light text-dark border border-secondary">
+                                    <i class="bi bi-play-circle"></i> 0 Videos
+                                </span>
+                            </div>
+                            
+                            <!-- Button (Disabled) -->
+                            <button class="btn btn-secondary btn-sm align-self-start" disabled>
+                                Coming Soon
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section py-5 text-white text-center">
+        <div class="container">
+            <h2 class="fw-bold mb-3">Ready to Find Your Funding?</h2>
+            <p class="lead mb-4">Join thousands of businesses accessing grants with The Grant Roadmap</p>
+            <div class="d-flex gap-3 justify-content-center flex-wrap">
+                <a href="{{ url_for('contact') }}" class="btn btn-outline-light btn-lg">Contact Us</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer Section -->
+    <section class="footer-section py-5 bg-dark text-light">
+        <div class="container">
+            <div class="row g-5">
+                <!-- Features Column -->
+                <div class="col-md-6 col-lg-3">
+                    <h6 class="fw-bold mb-4">Features</h6>
+                    <ul class="footer-links">
+                        <li><a href="#">Smart Matching</a></li>
+                        <li><a href="#">Grant Tracking</a></li>
+                        <li><a href="#">Application Assistant</a></li>
+                    </ul>
+                </div>
+
+                <!-- Company Column -->
+                <div class="col-md-6 col-lg-3">
+                    <h6 class="fw-bold mb-4">Company</h6>
+                    <ul class="footer-links">
+                        <li><a href="{{ url_for('home') }}">Services</a></li>
+                        <li><a href="{{ url_for('contact') }}">Contact Us</a></li>
+                        <li><a href="#">About Us</a></li>
+                    </ul>
+                </div>
+
+                <!-- Support Column -->
+                <div class="col-md-6 col-lg-3">
+                    <h6 class="fw-bold mb-4">Support</h6>
+                    <ul class="footer-links">
+                        <li><a href="#">Terms of Service</a></li>
+                        <li><a href="{{ url_for('contact', type='quote') }}">Sales</a></li>
+                        <li><a href="#">Help Center</a></li>
+                    </ul>
+                </div>
+
+                <!-- Resources Column -->
+                <div class="col-md-6 col-lg-3">
+                    <h6 class="fw-bold mb-4">Resources</h6>
+                    <ul class="footer-links">
+                        <li><a href="#">FAQs</a></li>
+                        <li><a href="#">Partner Network</a></li>
+                        <li><a href="#">Grant Guide</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <hr class="my-5 border-secondary">
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Dynamic text rotation
+    const textItems = document.querySelectorAll('.dynamic-text .text-item');
+    let currentIndex = 0;
+
+    function rotateText() {
+        // Remove active class from all items
+        textItems.forEach(item => item.classList.remove('active'));
+        
+        // Add active class to current item
+        if (textItems[currentIndex]) {
+            textItems[currentIndex].classList.add('active');
+        }
+        
+        // Move to next
+        currentIndex = (currentIndex + 1) % textItems.length;
+    }
+
+    // Initial setup - first item should be active
+    if (textItems.length > 0) {
+        textItems[0].classList.add('active');
+    }
+
+    // Rotate every 1.3 seconds
+    setInterval(rotateText, 1300);
+</script>
+{% endblock %}
