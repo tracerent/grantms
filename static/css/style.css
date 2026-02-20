@@ -641,40 +641,50 @@ body {
 }
 
 /* OAuth buttons: white text on sign-in/sign-up */
-.btn-oauth-google {
-    background-color: #4285F4;
-    color: var(--white) !important;
-    border-color: #4285F4;
+/* OAuth logo-only square buttons, side by side */
+.oauth-buttons-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 0.75rem;
 }
 
-.btn-oauth-google:hover {
-    background-color: #3367d6;
-    border-color: #3367d6;
-    color: var(--white) !important;
+.btn-oauth {
+    width: 3.25rem;
+    height: 3.25rem;
+    padding: 0;
+    border-radius: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    transition: background-color 0.2s, border-color 0.2s, transform 0.15s;
 }
 
-.btn-oauth-microsoft {
-    background-color: #2f2f2f;
-    color: var(--white) !important;
-    border-color: #2f2f2f;
+.btn-oauth:hover {
+    transform: scale(1.05);
 }
 
-.btn-oauth-microsoft:hover {
-    background-color: #1a1a1a;
-    border-color: #1a1a1a;
-    color: var(--white) !important;
-}
-
+/* Grey background for all; logos use brand colors via SVG fill / .oauth-icon-apple */
+.btn-oauth-google,
+.btn-oauth-microsoft,
 .btn-oauth-apple {
-    background-color: #000;
-    color: var(--white) !important;
-    border-color: #000;
+    background-color: #e9ecef;
+    border-color: #dee2e6;
+    color: inherit;
 }
 
+.btn-oauth-google:hover,
+.btn-oauth-microsoft:hover,
 .btn-oauth-apple:hover {
-    background-color: #333;
-    border-color: #333;
-    color: var(--white) !important;
+    background-color: #dee2e6;
+    border-color: #ced4da;
+    color: inherit;
+}
+
+.oauth-icon-apple {
+    color: #000;
 }
 
 /* =====================================================
