@@ -2,15 +2,24 @@
    GRANT ROADMAP - MAIN STYLESHEET
    ===================================================== */
 
+/* Theme: green, white, black, grey only */
 :root {
     --primary-color: #16a34a;
     --primary-dark: #15803d;
     --primary-light: #86efac;
     --success-color: #16a34a;
-    --danger-color: #dc3545;
-    --warning-color: #ffc107;
-    --info-color: #0dcaf0;
+    --danger-color: #374151;
+    --warning-color: #6b7280;
+    --info-color: #6b7280;
     --light-bg: #f8f9fa;
+    --grey-100: #f3f4f6;
+    --grey-200: #e5e7eb;
+    --grey-500: #6b7280;
+    --grey-600: #4b5563;
+    --grey-700: #374151;
+    --grey-900: #1f2937;
+    --black: #111827;
+    --white: #ffffff;
     --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     --card-shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
@@ -29,23 +38,78 @@ html {
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #fff;
-    color: #333;
+    background-color: var(--white);
+    color: var(--grey-900);
     line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.layout-main {
+    flex: 1 0 auto;
+}
+
+.layout-footer {
+    flex-shrink: 0;
 }
 
 /* =====================================================
-   NAVIGATION
+   NAVIGATION (theme: green bg, white text)
    ===================================================== */
 .navbar {
     box-shadow: var(--card-shadow);
 }
 
-.navbar-brand {
+.navbar-theme {
+    background-color: var(--primary-color) !important;
+}
+
+.navbar-brand-theme {
+    color: var(--white) !important;
     font-size: 1.5rem;
     letter-spacing: -0.5px;
-    color: var(--primary-color) !important;
     font-weight: 700;
+}
+
+.navbar-logo {
+    height: 70px;
+    width: auto;
+}
+
+.nav-link-theme {
+    color: var(--white) !important;
+    font-weight: 500;
+}
+
+.navbar-text-theme {
+    color: var(--white) !important;
+}
+
+.btn-nav-outline {
+    color: var(--white) !important;
+    border-color: var(--white) !important;
+}
+
+.navbar .navbar-toggler {
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.navbar .navbar-toggler-icon {
+    filter: brightness(0) invert(1);
+}
+
+.profile-dropdown {
+    min-width: 260px;
+    padding: 0.5rem 0;
+}
+
+.profile-dropdown .dropdown-header {
+    padding: 0.25rem 1rem;
+}
+
+.profile-dropdown .dropdown-item:hover {
+    background-color: var(--light-bg);
 }
 
 /* =====================================================
@@ -363,8 +427,8 @@ body {
     position: absolute;
     top: -12px;
     left: 20px;
-    background: linear-gradient(135deg, #B87333 0%, #8B5A2B 100%);
-    color: white;
+    background: linear-gradient(135deg, var(--grey-600) 0%, var(--grey-700) 100%);
+    color: var(--white);
     padding: 6px 16px;
     border-radius: 20px;
     font-size: 0.8rem;
@@ -523,6 +587,11 @@ body {
 
 .auth-page {
     background-color: var(--light-bg);
+    min-height: 80vh;
+}
+
+.auth-page .row {
+    min-height: 80vh;
 }
 
 .auth-card {
@@ -559,6 +628,53 @@ body {
 
 .auth-card .btn-lg:hover {
     background: var(--primary-dark);
+}
+
+.password-input-wrapper .password-toggle {
+    text-decoration: none;
+    font-size: 1.25rem;
+}
+
+.password-input-wrapper .password-toggle:hover {
+    text-decoration: none;
+    opacity: 0.8;
+}
+
+/* OAuth buttons: white text on sign-in/sign-up */
+.btn-oauth-google {
+    background-color: #4285F4;
+    color: var(--white) !important;
+    border-color: #4285F4;
+}
+
+.btn-oauth-google:hover {
+    background-color: #3367d6;
+    border-color: #3367d6;
+    color: var(--white) !important;
+}
+
+.btn-oauth-microsoft {
+    background-color: #2f2f2f;
+    color: var(--white) !important;
+    border-color: #2f2f2f;
+}
+
+.btn-oauth-microsoft:hover {
+    background-color: #1a1a1a;
+    border-color: #1a1a1a;
+    color: var(--white) !important;
+}
+
+.btn-oauth-apple {
+    background-color: #000;
+    color: var(--white) !important;
+    border-color: #000;
+}
+
+.btn-oauth-apple:hover {
+    background-color: #333;
+    border-color: #333;
+    color: var(--white) !important;
 }
 
 /* =====================================================
@@ -637,8 +753,8 @@ body {
 }
 
 .grant-card.favorite-card {
-    border: 2px solid var(--warning-color);
-    background: rgba(255, 193, 7, 0.02);
+    border: 2px solid var(--primary-color);
+    background: rgba(22, 163, 74, 0.04);
 }
 
 .grant-header {
@@ -667,28 +783,28 @@ body {
 }
 
 .status-badge.status-applied {
-    background: #e0f2fe;
-    color: #0369a1;
+    background: var(--grey-200);
+    color: var(--grey-700);
 }
 
 .status-badge.status-in-progress {
-    background: #fef3c7;
-    color: #b45309;
+    background: var(--grey-100);
+    color: var(--grey-700);
 }
 
 .status-badge.status-awaiting-review {
-    background: #f3e8ff;
-    color: #7c3aed;
+    background: var(--grey-200);
+    color: var(--grey-900);
 }
 
 .status-badge.status-approved {
-    background: #dcfce7;
-    color: #15803d;
+    background: var(--primary-light);
+    color: var(--primary-dark);
 }
 
 .status-badge.status-rejected {
-    background: #fee2e2;
-    color: #991b1b;
+    background: var(--grey-200);
+    color: var(--grey-700);
 }
 
 .grant-description {
@@ -781,7 +897,8 @@ body {
 }
 
 .table thead {
-    background: #374151;
+    background: var(--grey-700);
+    color: var(--white);
 }
 
 .table-bordered {
@@ -905,9 +1022,15 @@ body {
    FOOTER SECTION
    ===================================================== */
 
-.footer-section {
-    background: #1f2937;
+.footer-section,
+footer.bg-dark {
+    background: var(--grey-900) !important;
+    color: var(--grey-200);
     padding: 60px 0 20px;
+}
+
+footer.bg-dark .container {
+    color: var(--grey-200);
 }
 
 .footer-section h6 {
@@ -937,6 +1060,33 @@ body {
 .footer-links a:hover {
     color: var(--primary-color);
     padding-left: 5px;
+}
+
+/* =====================================================
+   ALERTS (theme: green/grey, no red/blue/yellow)
+   ===================================================== */
+.alert-danger {
+    background-color: rgba(55, 65, 81, 0.1);
+    border-color: var(--grey-600);
+    color: var(--grey-900);
+}
+
+.alert-warning {
+    background-color: rgba(107, 114, 128, 0.15);
+    border-color: var(--grey-500);
+    color: var(--grey-900);
+}
+
+.alert-success {
+    background-color: rgba(22, 163, 74, 0.1);
+    border-color: var(--primary-color);
+    color: var(--grey-900);
+}
+
+.alert-info {
+    background-color: rgba(22, 163, 74, 0.08);
+    border-color: var(--primary-light);
+    color: var(--grey-900);
 }
 
 /* =====================================================
@@ -1010,6 +1160,92 @@ body {
     animation: fadeIn 0.5s ease-out;
 }
 
-.animate-fade-in {
-    animation: fadeIn 0.5s ease-out;
+/* =====================================================
+   CONTACT PAGE (theme only)
+   ===================================================== */
+.contact-page {
+    background: linear-gradient(135deg, var(--grey-100) 0%, var(--white) 100%);
+    min-height: 100vh;
+}
+
+.contact-card {
+    border: 2px solid var(--primary-color) !important;
+    border-radius: 0.5rem;
+}
+
+.contact-card .card-title,
+.contact-card-title {
+    color: var(--grey-900);
+}
+
+.contact-form-input {
+    border: 1px solid var(--grey-200);
+    padding: 10px 12px;
+}
+
+.contact-form-input:focus {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 0.2rem rgba(22, 163, 74, 0.25);
+}
+
+.contact-form-input[rows] {
+    resize: vertical;
+}
+
+.contact-btn-primary {
+    background-color: var(--primary-color);
+    color: var(--white);
+    font-weight: 600;
+}
+
+.contact-btn-primary:hover {
+    background-color: var(--primary-dark);
+    color: var(--white);
+}
+
+.contact-back-link {
+    color: var(--primary-color);
+}
+
+.contact-alert-info {
+    border-left: 4px solid var(--primary-color);
+}
+
+.contact-required {
+    color: var(--grey-600);
+}
+
+/* =====================================================
+   HOME PAGE (images, resource cards)
+   ===================================================== */
+.hero-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 16px;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.steps-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.resource-card-wrap {
+    position: relative;
+}
+
+.resource-card .card-text-muted,
+.resource-card-muted {
+    font-size: 0.95rem;
+}
+
+/* =====================================================
+   RESOURCES VIEW (video)
+   ===================================================== */
+.resource-video {
+    max-height: 400px;
 }

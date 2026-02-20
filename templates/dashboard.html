@@ -3,14 +3,14 @@
 {% block title %}Dashboard - Grant Roadmap{% endblock %}
 
 {% block content %}
-<div class="dashboard-page">
+<div class="dashboard-page" data-grant-stats data-in-progress="{{ user_grants|length if user_grants else 0 }}">
     <div class="container-fluid">
         <!-- Header -->
         <div class="dashboard-header bg-light border-bottom py-4 mb-4">
             <div class="container">
                 <div class="row align-items-center">
                     <div class="col">
-                        <h1 class="fw-bold mb-1">Welcome, {{ user['username'] }}!</h1>
+                        <h1 class="fw-bold mb-1">Welcome, {{ user.get('name') or user['username'] }}!</h1>
                         <p class="text-muted mb-0">{{ user['company_name'] or 'Complete your profile' }}</p>
                     </div>
                     <div class="col-auto">
@@ -267,92 +267,5 @@
     </div>
 </div>
 
-<script>
-    // Apply for grant
-    document.querySelectorAll('.apply-grant').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const grantId = this.dataset.grantId;
-            fetch('/apply-grant', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ grant_id: grantId })
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Grant application started!');
-                    location.reload();
-                }
-            })
-            .catch(e => console.error(e));
-        });
-    });
-
-    // Toggle favorite
-    document.querySelectorAll('.toggle-favorite').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const grantId = this.dataset.grantId;
-            fetch('/toggle-favorite', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ grant_id: grantId })
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    this.textContent = this.textContent === '★' ? '☆' : '★';
-                }
-            })
-            .catch(e => console.error(e));
-        });
-    });
-
-    // Update status dropdown
-    document.querySelectorAll('.status-update').forEach(select => {
-        select.addEventListener('change', function() {
-            const grantId = this.dataset.grantId;
-            const status = this.value;
-            fetch('/update-grant-status', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ grant_id: grantId, status: status })
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) {
-                    console.log('Status updated');
-                }
-            })
-            .catch(e => console.error(e));
-        });
-    });
-
-    // Grant search
-    document.getElementById('grantSearch').addEventListener('keyup', function(e) {
-        const query = e.target.value.toLowerCase();
-        document.querySelectorAll('.grant-item').forEach(item => {
-            const title = item.dataset.title;
-            const desc = item.dataset.desc;
-            if (title.includes(query) || desc.includes(query)) {
-                item.style.display = '';
-            } else {
-                item.style.display = 'none';
-            }
-        });
-    });
-
-    // Update stats
-    function updateStats() {
-        const inProgress = {{ user_grants|length if user_grants else 0 }};
-        document.getElementById('inProgressCount').textContent = inProgress;
-    }
-
-    updateStats();
-</script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 {% endblock %}

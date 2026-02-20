@@ -7,86 +7,39 @@
     <div class="container py-5">
         <div class="row justify-content-center">
             <div class="col-md-8 col-lg-6">
-                <div class="card shadow-sm border-0" style="border: 2px solid #16a34a !important;">
+                <div class="card shadow-sm border-0 contact-card">
                     <div class="card-body p-5">
-                        <h2 class="mb-1 fw-bold" style="color: #1a3a5c;">{{ page_title }}</h2>
+                        <h2 class="mb-1 fw-bold contact-card-title">{{ page_title }}</h2>
                         <p class="text-muted mb-4">{{ page_subtitle }}</p>
 
                         <form method="POST" action="{{ url_for('submit_contact') }}">
-                            <!-- Hidden field for contact type -->
                             <input type="hidden" name="contact_type" value="{{ contact_type }}">
 
-                            <!-- Email Field -->
                             <div class="mb-4">
-                                <label for="email" class="form-label fw-bold">Email Address <span style="color: red;">*</span></label>
-                                <input 
-                                    type="email" 
-                                    class="form-control" 
-                                    id="email" 
-                                    name="email" 
-                                    placeholder="your.email@example.com"
-                                    required
-                                    style="border: 1px solid #ddd; padding: 10px 12px;">
+                                <label for="name" class="form-label fw-bold">Name <span class="contact-required">*</span></label>
+                                <input type="text" class="form-control contact-form-input" id="name" name="name" placeholder="Your name" required>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="email" class="form-label fw-bold">Email Address <span class="contact-required">*</span></label>
+                                <input type="email" class="form-control contact-form-input" id="email" name="email" placeholder="your.email@example.com" required>
                                 <small class="text-muted">We'll use this email to get back to you</small>
                             </div>
 
-                            <!-- Message Field -->
                             <div class="mb-4">
-                                <label for="message" class="form-label fw-bold">Message <span style="color: red;">*</span></label>
-                                <textarea 
-                                    class="form-control" 
-                                    id="message" 
-                                    name="message" 
-                                    rows="6"
-                                    placeholder="Please tell us how we can help you..."
-                                    required
-                                    style="border: 1px solid #ddd; padding: 10px 12px; resize: vertical;"></textarea>
+                                <label for="message" class="form-label fw-bold">Request / Message <span class="contact-required">*</span></label>
+                                <textarea class="form-control contact-form-input" id="message" name="message" rows="6" placeholder="Please tell us how we can help you..." required></textarea>
                                 <small class="text-muted">Maximum 1000 characters</small>
                             </div>
 
-                            <!-- Submit Button -->
                             <div class="d-grid gap-2 mb-3">
-                                <button type="submit" class="btn btn-lg" style="background-color: #16a34a; color: white; font-weight: 600;">
-                                    Send Message
-                                </button>
-                            </div>
-
-                            <!-- Back Link -->
-                            <div class="text-center">
-                                <a href="{{ url_for('home') }}" class="text-decoration-none" style="color: #16a34a;">
-                                    ← Back to Home
-                                </a>
+                                <button type="submit" class="btn btn-lg contact-btn-primary">Send Message</button>
                             </div>
                         </form>
                     </div>
-                </div>
-
-                <!-- Info Box -->
-                <div class="alert alert-info mt-4" style="border-left: 4px solid #16a34a;">
-                    <strong>📧 Direct Contact</strong>
-                    <p class="mb-0 mt-2">You can also reach us directly at:</p>
-                    <p class="mb-0">
-                        <a href="mailto:info@grantroadmap.com" style="color: #16a34a; text-decoration: none;">info@grantroadmap.com</a>
-                    </p>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
-<style>
-    .contact-page {
-        background: linear-gradient(135deg, #f5f5f5 0%, #ffffff 100%);
-        min-height: 100vh;
-    }
-
-    .form-control:focus {
-        border-color: #16a34a !important;
-        box-shadow: 0 0 0 0.2rem rgba(22, 163, 74, 0.25);
-    }
-
-    .card {
-        border-radius: 0.5rem;
-    }
-</style>
 {% endblock %}

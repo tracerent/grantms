@@ -114,3 +114,20 @@ Edit `core-config.yaml` to configure:
 - Application settings
 - Feature toggles
 - API configurations
+
+### Sign-in with Google, Microsoft, or Apple (optional)
+
+To enable "Sign in with Google", "Sign in with Microsoft", or "Sign in with Apple", add OAuth credentials.
+
+1. **In `core-config.yaml`** under `oauth` > `google` / `microsoft` / `apple`, set `client_id` and `client_secret` (from each provider’s developer console).
+2. **Or use environment variables** (recommended for production):
+   - Google: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
+   - Microsoft: `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`
+   - Apple: `APPLE_CLIENT_ID`, `APPLE_CLIENT_SECRET` (Apple also needs a JWT client secret in many setups).
+
+3. **Redirect URI** to register with each provider:
+   - Google: `http://localhost:5000/auth/google/callback` (use your real domain in production)
+   - Microsoft: `http://localhost:5000/auth/microsoft/callback`
+   - Apple: `http://localhost:5000/auth/apple/callback`
+
+If a provider is not configured, its button is still shown but users see a “not configured” message when they click it.

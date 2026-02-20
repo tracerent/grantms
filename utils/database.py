@@ -26,18 +26,36 @@ def init_db():
     connection = get_db()
     try:
         with connection.cursor() as cursor:
-            # Users table
+            # Users table (name, email, company; password or OAuth)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS users (
                     id INT AUTO_INCREMENT PRIMARY KEY,
+                    name VARCHAR(255),
                     username VARCHAR(255) UNIQUE NOT NULL,
                     email VARCHAR(255) UNIQUE NOT NULL,
-                    password VARCHAR(255) NOT NULL,
+                    password VARCHAR(255),
                     company_name VARCHAR(255),
                     company_description TEXT,
+                    auth_provider VARCHAR(50),
+                    auth_provider_id VARCHAR(255),
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             """)
+            # Migrate existing table: add new columns if missing (for existing DBs)
+            for col_sql in [
+                "ALTER TABLE users ADD COLUMN name VARCHAR(255) AFTER id",
+                "ALTER TABLE users ADD COLUMN auth_provider VARCHAR(50) AFTER company_description",
+                "ALTER TABLE users ADD COLUMN auth_provider_id VARCHAR(255) AFTER auth_provider",
+                "ALTER TABLE users MODIFY COLUMN password VARCHAR(255) NULL",
+            ]:
+                try:
+                    cursor.execute(col_sql)
+                    connection.commit()
+                except (pymysql.OperationalError, pymysql.InternalError) as e:
+                    if "Duplicate column" in str(e) or "1060" in str(e):
+                        pass
+                    else:
+                        raise
 
             # Grants table
             cursor.execute("""
@@ -84,21 +102,29 @@ def init_db():
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             """)
 
-            # Check if grants table has data, if not seed it
-            cursor.execute("SELECT COUNT(*) as count FROM grants")
-            if cursor.fetchone()["count"] == 0:
-                sample_grants = [
-                    ("Small Business Innovation Grant", "Gov Agency A", "Supports innovative small business projects in technology and R&D.", 50000, "2024-12-31", "Technology", "Canada", "Small businesses with < 250 employees", "https://example.com/grant1"),
-                    ("Green Energy Adoption Grant", "Gov Agency B", "Funding for companies adopting green energy solutions.", 100000, "2024-11-30", "Sustainability", "Canada", "All business sizes", "https://example.com/grant2"),
-                    ("Workforce Training Grant", "Gov Agency C", "Supports training programs to upskill employees.", 30000, "2024-10-31", "HR/Training", "Canada", "Organizations with 10+ employees", "https://example.com/grant3"),
-                    ("Rural Development Grant", "Gov Agency D", "Grants for companies expanding services in rural areas.", 75000, "2024-09-30", "Expansion", "Rural Canada", "Any organization", "https://example.com/grant4"),
-                    ("Export Market Development Grant", "Gov Agency E", "Support for companies entering new export markets.", 50000, "2024-12-15", "Export", "Canada", "SMEs with export plans", "https://example.com/grant5"),
-                ]
-                
-                cursor.executemany("""
-                    INSERT INTO grants (title, agency, description, funding_amount, deadline, category, location, eligibility, url)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """, sample_grants)
+            # Contact / quote submissions (separate from users - no login)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS contact_submissions (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL,
+                    email VARCHAR(255) NOT NULL,
+                    message TEXT NOT NULL,
+                    contact_type VARCHAR(50) NOT NULL DEFAULT 'contact',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """)
+
+            # Password reset tokens (for forgot password)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS password_reset_tokens (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NOT NULL,
+                    token VARCHAR(255) NOT NULL UNIQUE,
+                    expires_at TIMESTAMP NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """)
 
             connection.commit()
     finally:
@@ -106,15 +132,57 @@ def init_db():
 
 
 # User operations
-def create_user(username, email, password_hash, company_name):
-    """Create a new user."""
+def create_user(name, email, password_hash, company_name, username=None):
+    """Create a new user (sign up with email/password). username defaults to email."""
+    if username is None:
+        username = email
     connection = get_db()
     try:
         with connection.cursor() as cursor:
             cursor.execute("""
-                INSERT INTO users (username, email, password, company_name)
-                VALUES (%s, %s, %s, %s)
-            """, (username, email, password_hash, company_name))
+                INSERT INTO users (name, username, email, password, company_name)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (name or "", username, email, password_hash, company_name or ""))
+            connection.commit()
+            return cursor.lastrowid
+    finally:
+        connection.close()
+
+
+def get_user_by_email(email):
+    """Get user by email."""
+    connection = get_db()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+            return cursor.fetchone()
+    finally:
+        connection.close()
+
+
+def get_user_by_oauth(provider, provider_id):
+    """Get user by OAuth provider and provider id."""
+    connection = get_db()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT * FROM users WHERE auth_provider = %s AND auth_provider_id = %s",
+                (provider, provider_id),
+            )
+            return cursor.fetchone()
+    finally:
+        connection.close()
+
+
+def create_oauth_user(email, name, company_name, provider, provider_id):
+    """Create or link user from OAuth. username = email for uniqueness."""
+    connection = get_db()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                INSERT INTO users (name, username, email, password, company_name, auth_provider, auth_provider_id)
+                VALUES (%s, %s, %s, NULL, %s, %s, %s)
+            """, (name or "", email, email, company_name or "", provider, provider_id))
             connection.commit()
             return cursor.lastrowid
     finally:
@@ -143,6 +211,21 @@ def get_user_by_username(username):
         connection.close()
 
 
+def link_oauth_to_user(user_id, provider, provider_id):
+    """Link OAuth provider to existing user (e.g. after first email signup)."""
+    connection = get_db()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                UPDATE users SET auth_provider = %s, auth_provider_id = %s
+                WHERE id = %s
+            """, (provider, provider_id, user_id))
+            connection.commit()
+            return cursor.rowcount
+    finally:
+        connection.close()
+
+
 def update_user_profile(user_id, company_description):
     """Update user profile."""
     connection = get_db()
@@ -152,6 +235,77 @@ def update_user_profile(user_id, company_description):
                 UPDATE users SET company_description = %s
                 WHERE id = %s
             """, (company_description, user_id))
+            connection.commit()
+            return cursor.rowcount
+    finally:
+        connection.close()
+
+
+# Contact / quote submissions (separate from users - no login)
+def create_contact_submission(name, email, message, contact_type="contact"):
+    """Save a contact or quote request. Does not create a user account."""
+    connection = get_db()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                INSERT INTO contact_submissions (name, email, message, contact_type)
+                VALUES (%s, %s, %s, %s)
+            """, (name, email, message, contact_type))
+            connection.commit()
+            return cursor.lastrowid
+    finally:
+        connection.close()
+
+
+# Password reset
+def create_reset_token(user_id, token, expires_at):
+    """Store a password reset token."""
+    connection = get_db()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                INSERT INTO password_reset_tokens (user_id, token, expires_at)
+                VALUES (%s, %s, %s)
+            """, (user_id, token, expires_at))
+            connection.commit()
+            return cursor.lastrowid
+    finally:
+        connection.close()
+
+
+def get_reset_token_user_id(token):
+    """Get user_id for a valid token; returns None if invalid or expired."""
+    connection = get_db()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT user_id FROM password_reset_tokens
+                WHERE token = %s AND expires_at > NOW()
+            """, (token,))
+            row = cursor.fetchone()
+            return row["user_id"] if row else None
+    finally:
+        connection.close()
+
+
+def delete_reset_token(token):
+    """Remove a reset token (after use or expiry)."""
+    connection = get_db()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("DELETE FROM password_reset_tokens WHERE token = %s", (token,))
+            connection.commit()
+            return cursor.rowcount
+    finally:
+        connection.close()
+
+
+def update_user_password(user_id, password_hash):
+    """Update a user's password (for reset)."""
+    connection = get_db()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("UPDATE users SET password = %s WHERE id = %s", (password_hash, user_id))
             connection.commit()
             return cursor.rowcount
     finally:

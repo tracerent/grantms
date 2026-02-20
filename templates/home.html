@@ -32,7 +32,7 @@
 
                 <div class="hero-right">
                     <div class="hero-image-placeholder">
-                        <img src="{{ url_for('static', filename='image/hero.png') }}" alt="Hero" style="width: 100%; height: 100%; object-fit: cover; border-radius: 16px; position: absolute; top: 0; left: 0;">
+                        <img src="{{ url_for('static', filename='image/hero.png') }}" alt="Hero" class="hero-img">
                         <div class="overlay-tile matches">
                             <div class="number">70+</div>
                             <div class="label">Matches</div>
@@ -59,7 +59,7 @@
                     </a>
                 </div>
                 <div class="success-image">
-                    <img src="{{ url_for('static', filename='image/steps.png') }}" alt="7-Step Grant Success System" style="width: 100%; height: 100%; object-fit: contain;">
+                    <img src="{{ url_for('static', filename='image/steps.png') }}" alt="7-Step Grant Success System" class="steps-img">
                 </div>
             </div>
         </div>
@@ -261,10 +261,10 @@
             <div class="row g-4">
                 <!-- R&D Resources -->
                 <div class="col-md-6 col-lg-4">
-                    <div class="card h-100 resource-card shadow-sm" style="position: relative;">
+                    <div class="card h-100 resource-card resource-card-wrap shadow-sm">
                         <div class="card-body d-flex flex-column">
                             <h4 class="card-title fw-bold mb-2">🧪 {{ resources.rd.name }}</h4>
-                            <p class="card-text text-muted flex-grow-1 mb-3" style="font-size: 0.95rem;">
+                            <p class="card-text text-muted flex-grow-1 mb-3 resource-card-muted">
                                 {{ resources.rd.description }}
                             </p>
                             
@@ -279,34 +279,34 @@
                             </div>
                             
                             <!-- Button -->
-                            <a href="{{ url_for('signup') }}" class="btn btn-outline-primary btn-sm align-self-start">
+                            <a href="{{ url_for('resources_view', key='rd') }}" class="btn btn-outline-primary btn-sm align-self-start">
                                 Explore Resources <i class="bi bi-arrow-right"></i>
                             </a>
                         </div>
                     </div>
                 </div>
 
-                <!-- Expert Resources -->
+                <!-- Export Resources -->
                 <div class="col-md-6 col-lg-4">
-                    <div class="card h-100 resource-card shadow-sm" style="position: relative;">
+                    <div class="card h-100 resource-card resource-card-wrap shadow-sm">
                         <div class="card-body d-flex flex-column">
-                            <h4 class="card-title fw-bold mb-2">👨‍💼 {{ resources.expert.name }}</h4>
-                            <p class="card-text text-muted flex-grow-1 mb-3" style="font-size: 0.95rem;">
-                                {{ resources.expert.description }}
+                            <h4 class="card-title fw-bold mb-2">📦 {{ resources.export.name }}</h4>
+                            <p class="card-text text-muted flex-grow-1 mb-3 resource-card-muted">
+                                {{ resources.export.description }}
                             </p>
                             
                             <!-- Document and Video Labels -->
                             <div class="d-flex gap-2 mb-3">
                                 <span class="badge bg-light text-dark border border-secondary">
-                                    <i class="bi bi-file-pdf"></i> {{ resources.expert.documents }} Documents
+                                    <i class="bi bi-file-pdf"></i> {{ resources.export.documents }} Documents
                                 </span>
                                 <span class="badge bg-light text-dark border border-secondary">
-                                    <i class="bi bi-play-circle"></i> {{ resources.expert.videos }} Videos
+                                    <i class="bi bi-play-circle"></i> {{ resources.export.videos }} Videos
                                 </span>
                             </div>
                             
                             <!-- Button -->
-                            <a href="{{ url_for('signup') }}" class="btn btn-outline-primary btn-sm align-self-start">
+                            <a href="{{ url_for('resources_view', key='export') }}" class="btn btn-outline-primary btn-sm align-self-start">
                                 Explore Resources <i class="bi bi-arrow-right"></i>
                             </a>
                         </div>
@@ -315,10 +315,10 @@
 
                 <!-- Hiring Resources -->
                 <div class="col-md-6 col-lg-4">
-                    <div class="card h-100 resource-card shadow-sm" style="position: relative;">
+                    <div class="card h-100 resource-card resource-card-wrap shadow-sm">
                         <div class="card-body d-flex flex-column">
                             <h4 class="card-title fw-bold mb-2">💼 {{ resources.hiring.name }}</h4>
-                            <p class="card-text text-muted flex-grow-1 mb-3" style="font-size: 0.95rem;">
+                            <p class="card-text text-muted flex-grow-1 mb-3 resource-card-muted">
                                 {{ resources.hiring.description }}
                             </p>
                             
@@ -333,7 +333,7 @@
                             </div>
                             
                             <!-- Button -->
-                            <a href="{{ url_for('signup') }}" class="btn btn-outline-primary btn-sm align-self-start">
+                            <a href="{{ url_for('resources_view', key='hiring') }}" class="btn btn-outline-primary btn-sm align-self-start">
                                 Explore Resources <i class="bi bi-arrow-right"></i>
                             </a>
                         </div>
@@ -342,13 +342,13 @@
 
                 <!-- Training Resources -->
                 <div class="col-md-6 col-lg-4">
-                    <div class="card h-100 resource-card shadow-sm" style="position: relative;">
+                    <div class="card h-100 resource-card resource-card-wrap shadow-sm">
                         <div class="position-absolute top-0 end-0 p-2">
-                            <span class="badge bg-warning text-dark">Coming Soon</span>
+                            <span class="badge bg-secondary">Coming Soon</span>
                         </div>
                         <div class="card-body d-flex flex-column">
                             <h4 class="card-title fw-bold mb-2">📚 {{ resources.training.name }}</h4>
-                            <p class="card-text text-muted flex-grow-1 mb-3" style="font-size: 0.95rem;">
+                            <p class="card-text text-muted flex-grow-1 mb-3 resource-card-muted">
                                 {{ resources.training.description }}
                             </p>
                             
@@ -372,13 +372,13 @@
 
                 <!-- Expansion Resources -->
                 <div class="col-md-6 col-lg-4">
-                    <div class="card h-100 resource-card shadow-sm" style="position: relative;">
+                    <div class="card h-100 resource-card resource-card-wrap shadow-sm">
                         <div class="position-absolute top-0 end-0 p-2">
-                            <span class="badge bg-warning text-dark">Coming Soon</span>
+                            <span class="badge bg-secondary">Coming Soon</span>
                         </div>
                         <div class="card-body d-flex flex-column">
                             <h4 class="card-title fw-bold mb-2">📈 {{ resources.expansion.name }}</h4>
-                            <p class="card-text text-muted flex-grow-1 mb-3" style="font-size: 0.95rem;">
+                            <p class="card-text text-muted flex-grow-1 mb-3 resource-card-muted">
                                 {{ resources.expansion.description }}
                             </p>
                             
@@ -466,30 +466,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-    // Dynamic text rotation
-    const textItems = document.querySelectorAll('.dynamic-text .text-item');
-    let currentIndex = 0;
-
-    function rotateText() {
-        // Remove active class from all items
-        textItems.forEach(item => item.classList.remove('active'));
-        
-        // Add active class to current item
-        if (textItems[currentIndex]) {
-            textItems[currentIndex].classList.add('active');
-        }
-        
-        // Move to next
-        currentIndex = (currentIndex + 1) % textItems.length;
-    }
-
-    // Initial setup - first item should be active
-    if (textItems.length > 0) {
-        textItems[0].classList.add('active');
-    }
-
-    // Rotate every 1.3 seconds
-    setInterval(rotateText, 1300);
-</script>
+<script src="{{ url_for('static', filename='js/home.js') }}"></script>
 {% endblock %}

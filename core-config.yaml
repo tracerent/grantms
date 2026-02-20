@@ -4,6 +4,29 @@ app:
   version: "1.0.0"
   logo: "static/images/logo.png"
 
+# Optional: SMTP for password reset emails (leave empty to show link on success page)
+mail:
+  smtp_host: ""
+  smtp_port: 587
+  smtp_user: ""
+  smtp_password: ""
+  from_addr: "noreply@grantroadmap.com"
+
+# OAuth (override with env: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, etc.)
+oauth:
+  google:
+    client_id: ""
+    client_secret: ""
+  microsoft:
+    client_id: ""
+    client_secret: ""
+  apple:
+    client_id: ""
+    client_secret: ""
+    team_id: ""
+    key_id: ""
+    # private_key from file or env for Apple
+
 # Environment Configurations
 environments:
   development:
