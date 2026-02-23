@@ -14,6 +14,8 @@ from utils.database import (
     is_favorite, get_user_favorites
 )
 from authlib.integrations.flask_client import OAuth
+import mammoth
+from bs4 import BeautifulSoup
 
 app = Flask(__name__)
 
@@ -107,9 +109,6 @@ def home():
 
 @app.route("/resources/<key>")
 def resources_view(key):
-    if "user_id" not in session:
-        flash("Please sign in to access resources.", "warning")
-        return redirect(url_for("signin", next=request.url))
     if key not in RESOURCE_FOLDERS:
         flash("Resource category not found", "danger")
         return redirect(url_for("home"))
@@ -138,9 +137,6 @@ def resources_view(key):
 
 @app.route("/resources/<key>/file/<path:filename>")
 def resource_file(key, filename):
-    if "user_id" not in session:
-        flash("Please sign in to access resources.", "warning")
-        return redirect(url_for("signin", next=request.url))
     if key not in RESOURCE_FOLDERS:
         return "Not found", 404
     folder_name = f"{key}-resources"
@@ -155,6 +151,57 @@ def resource_file(key, filename):
         return "Not found", 404
     force_download = request.args.get("download") or filename.lower().endswith(".docx")
     return send_from_directory(folder_path, filename, as_attachment=force_download, download_name=os.path.basename(filename))
+
+
+# FAQ: display a DOCX as Q/A accordion (open to all)
+FAQ_DOCX_PATH = "faq/FAQ.docx"
+FAQ_HEADING_TAGS = ("h1", "h2", "h3")
+
+def _faq_html_to_items(faq_html):
+    """Parse mammoth HTML into list of {question, answer}. Uses headings as questions."""
+    soup = BeautifulSoup(faq_html, "html.parser")
+    body = soup.find("body")
+    if not body:
+        # Fragment without body: use soup's first element or whole thing
+        body = soup
+        if soup.find(FAQ_HEADING_TAGS):
+            pass  # headings at top level
+        else:
+            return [{"question": "FAQ", "answer": faq_html}]
+    items = []
+    current_heading = None
+    current_answer_nodes = []
+    for el in body.children:
+        if hasattr(el, "name") and el.name in FAQ_HEADING_TAGS:
+            if current_heading is not None:
+                answer_html = "".join(str(n) for n in current_answer_nodes).strip()
+                items.append({"question": current_heading.get_text(strip=True), "answer": answer_html or ""})
+            current_heading = el
+            current_answer_nodes = []
+        else:
+            if current_heading is not None:
+                current_answer_nodes.append(el)
+    if current_heading is not None:
+        answer_html = "".join(str(n) for n in current_answer_nodes).strip()
+        items.append({"question": current_heading.get_text(strip=True), "answer": answer_html or ""})
+    if not items:
+        return [{"question": "FAQ", "answer": faq_html}]
+    return items
+
+@app.route("/faq")
+def faq():
+    faq_path = os.path.join(_get_resources_path(), FAQ_DOCX_PATH)
+    if not os.path.isfile(faq_path):
+        flash("FAQ is not available at the moment.", "info")
+        return redirect(url_for("home"))
+    try:
+        with open(faq_path, "rb") as f:
+            result = mammoth.convert_to_html(f)
+        faq_html = result.value
+        faq_items = _faq_html_to_items(faq_html)
+    except Exception as e:
+        faq_items = [{"question": "Error", "answer": "<p class='text-danger'>Unable to load the FAQ document.</p>"}]
+    return render_template("faq.html", faq_items=faq_items)
 
 
 # ----- OAuth sign-in (Google, Microsoft, Apple) -----
