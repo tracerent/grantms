@@ -55,16 +55,6 @@
             });
         });
 
-        // Switch tab when clicking Home overview cards
-        document.querySelectorAll('[data-tab-switch]').forEach(function(link) {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                var tabId = this.getAttribute('data-tab-switch');
-                var tabBtn = document.querySelector('[data-bs-target="#' + tabId + '"]');
-                if (tabBtn && typeof tabBtn.click === 'function') tabBtn.click();
-            });
-        });
-
         var searchEl = document.getElementById('grantSearch');
         if (searchEl) {
             searchEl.addEventListener('keyup', function(e) {

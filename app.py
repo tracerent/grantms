@@ -538,10 +538,9 @@ def update_profile():
         return jsonify({"error": "Not logged in"}), 401
     
     user_id = session["user_id"]
-    company_description = request.form.get("company_description", "")
     
     try:
-        update_user_profile(user_id, company_description)
+        update_user_profile(user_id)
         flash("Profile updated", "success")
         return redirect(url_for("dashboard"))
     except Exception as e:

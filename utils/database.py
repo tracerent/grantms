@@ -226,17 +226,13 @@ def link_oauth_to_user(user_id, provider, provider_id):
         connection.close()
 
 
-def update_user_profile(user_id, company_description):
-    """Update user profile."""
+def update_user_profile(user_id):
+    """Update user profile (reserved for future profile fields)."""
     connection = get_db()
     try:
         with connection.cursor() as cursor:
-            cursor.execute("""
-                UPDATE users SET company_description = %s
-                WHERE id = %s
-            """, (company_description, user_id))
             connection.commit()
-            return cursor.rowcount
+            return 1
     finally:
         connection.close()
 

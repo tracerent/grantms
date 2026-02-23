@@ -2,12 +2,14 @@
    GRANT ROADMAP - MAIN STYLESHEET
    ===================================================== */
 
-/* Theme: green, white, black, grey only */
+/* Theme: yellow, white, black, grey, light blue for distinction */
 :root {
-    --primary-color: #16a34a;
-    --primary-dark: #15803d;
-    --primary-light: #86efac;
-    --success-color: #16a34a;
+    --primary-color: #eab308;
+    --primary-dark: #ca8a04;
+    --primary-light: #fef08a;
+    --success-color: #eab308;
+    --accent-blue: #dbeafe;
+    --accent-blue-border: #93c5fd;
     --danger-color: #374151;
     --warning-color: #6b7280;
     --info-color: #6b7280;
@@ -38,7 +40,9 @@ html {
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: var(--white);
+    background: linear-gradient(180deg, var(--white) 0%, var(--grey-100) 35%, var(--accent-blue) 100%);
+    background-attachment: fixed;
+    background-repeat: no-repeat;
     color: var(--grey-900);
     line-height: 1.6;
     display: flex;
@@ -84,8 +88,8 @@ body {
 
 /* Title banner - highlights section/tile titles with distinct background and text color */
 .title-banner {
-    background: rgba(88, 100, 92, 0.1);
-    border: 1px solid rgba(22, 163, 74, 0.3);
+    background: var(--grey-100);
+    border: 1px solid var(--grey-200);
     border-radius: 8px;
     padding: 0.65rem 1rem;
     margin-bottom: 0.75rem;
@@ -96,12 +100,12 @@ body {
 .title-banner h3,
 .title-banner h4,
 .title-banner h5 {
-    color: #14532d;
+    color: var(--grey-900);
     font-weight: 700;
 }
 
 .title-banner-count {
-    color: #166534;
+    color: var(--grey-700);
     font-weight: 500;
 }
 
@@ -111,16 +115,30 @@ body {
 }
 
 .section-title-banner h2 {
-    color: #14532d;
+    color: var(--grey-900);
 }
 
-/* Dashboard home section tile title banner */
+/* Resources section title banner - grey to match Choose Your Plan */
+.section-title-banner-resources {
+    background: var(--grey-100);
+    border: 1px solid var(--grey-200);
+}
+
+.section-title-banner-resources h2 {
+    color: var(--grey-900);
+}
+
+/* Dashboard home section tile title banner - blue strip like landing page */
 .home-section-title-banner {
     padding: 0.6rem 1rem;
+    background: var(--accent-blue);
+    border: 1px solid var(--accent-blue-border);
+    border-radius: 6px;
 }
 
 .home-section-title-banner .home-section-title {
     font-size: 1.1rem;
+    color: var(--grey-900);
 }
 
 .list-group-separated .list-group-item {
@@ -141,21 +159,25 @@ body {
 }
 
 /* =====================================================
-   NAVIGATION (theme: green bg, white text)
+   NAVIGATION (theme: gray bg, black text)
    ===================================================== */
 .navbar {
     box-shadow: var(--card-shadow);
 }
 
 .navbar-theme {
-    background-color: var(--primary-color) !important;
+    background-color: var(--grey-200) !important;
 }
 
 .navbar-brand-theme {
-    color: var(--white) !important;
+    color: var(--black) !important;
     font-size: 1.5rem;
     letter-spacing: -0.5px;
     font-weight: 700;
+}
+
+.navbar-brand-theme:hover {
+    color: var(--primary-color) !important;
 }
 
 .navbar-logo {
@@ -164,26 +186,28 @@ body {
 }
 
 .nav-link-theme {
-    color: var(--white) !important;
+    color: var(--black) !important;
     font-weight: 500;
 }
 
+.nav-link-theme:hover {
+    color: var(--primary-color) !important;
+}
+
 .navbar-text-theme {
-    color: var(--white) !important;
+    color: var(--black) !important;
 }
 
 .btn-nav-outline {
-    color: var(--white) !important;
-    border-color: var(--white) !important;
+    color: var(--black) !important;
+    border-color: var(--black) !important;
 }
 
 .navbar .navbar-toggler {
-    border-color: rgba(255, 255, 255, 0.5);
+    border-color: rgba(0, 0, 0, 0.3);
 }
 
-.navbar .navbar-toggler-icon {
-    filter: brightness(0) invert(1);
-}
+/* Navbar toggler: default dark icon on gray background (no filter needed) */
 
 .profile-dropdown {
     min-width: 260px;
@@ -208,7 +232,7 @@ body {
 }
 
 .hero-section {
-    background: #ffffff;
+    background: transparent;
     color: #1f2937;
     padding: 80px 0 60px;
     border-bottom: 1px solid #e5e7eb;
@@ -270,17 +294,17 @@ body {
 .customers-badge {
     display: inline-block;
     padding: 12px 24px;
-    background: white;
-    border: 2px solid var(--primary-light);
+    background: var(--accent-blue);
+    border: 2px solid var(--accent-blue-border);
     border-radius: 50px;
-    color: var(--primary-dark);
+    color: var(--grey-900);
     font-size: 0.95rem;
     font-weight: 600;
     margin-top: 20px;
 }
 
 .customers-badge strong {
-    color: var(--primary-color);
+    color: var(--grey-900);
     font-size: 1.1rem;
 }
 
@@ -295,7 +319,7 @@ body {
 .hero-image-placeholder {
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, #d4fc7d 0%, #86efac 100%);
+    background: linear-gradient(135deg, var(--primary-light) 0%, var(--grey-200) 100%);
     border-radius: 16px;
     display: flex;
     align-items: center;
@@ -357,7 +381,7 @@ body {
 /* Success System Section */
 .success-system {
     padding: 80px 0;
-    background: white;
+    background: transparent;
     border-bottom: 1px solid var(--grey-200);
 }
 
@@ -464,7 +488,7 @@ body {
 /* Plans Section */
 .plans-section {
     padding: 80px 0;
-    background: white;
+    background: transparent;
     border-bottom: 1px solid var(--grey-200);
 }
 
@@ -494,7 +518,7 @@ body {
 
 .plan-card.featured {
     border: 2px solid var(--primary-color);
-    box-shadow: 0 4px 20px rgba(22, 163, 74, 0.2);
+    box-shadow: 0 4px 20px rgba(234, 179, 8, 0.25);
     transform: scale(1.05);
 }
 
@@ -535,9 +559,10 @@ body {
     color: #1f2937;
 }
 
-/* Very light green strip for plan name */
+/* Blue strip for plan name (Basic Plan, Success Plan, etc.) */
 .plan-name-strip {
-    background: rgba(88, 100, 92, 0.1);
+    background: var(--accent-blue);
+    border: 1px solid var(--accent-blue-border);
     border-radius: 6px;
     padding: 0.5rem 0.75rem;
     margin-bottom: 0.5rem;
@@ -613,7 +638,7 @@ body {
 /* Resources Section */
 .resources-section {
     padding: 80px 0;
-    background: #f9fafb;
+    background: transparent;
     border-bottom: 1px solid var(--grey-200);
 }
 
@@ -625,9 +650,9 @@ body {
 
 .resource-card {
     transition: transform 0.2s, box-shadow 0.2s;
-    border: 2px solid #16a34a !important;
+    border: 1px solid var(--grey-200) !important;
     overflow: hidden;
-    border-radius: 0.375rem;
+    border-radius: 12px;
     box-shadow: var(--card-shadow);
 }
 
@@ -637,9 +662,10 @@ body {
     margin: 0;
 }
 
-/* Very light green strip for resource card title */
+/* Light blue strip for resource card title */
 .resource-name-strip {
-    background: rgba(22, 163, 74, 0.1);
+    background: var(--accent-blue);
+    border: 1px solid var(--accent-blue-border);
     border-radius: 6px;
     padding: 0.5rem 0.75rem;
     margin-bottom: 0;
@@ -652,7 +678,8 @@ body {
 
 .resource-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1) !important;
+    box-shadow: var(--card-shadow-hover) !important;
+    border-color: var(--primary-color) !important;
 }
 
 .resource-icon {
@@ -731,7 +758,7 @@ body {
 
 .auth-card .form-control-lg:focus {
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 0.2rem rgba(22, 163, 74, 0.25);
+    box-shadow: 0 0 0 0.2rem rgba(234, 179, 8, 0.25);
 }
 
 .auth-card .btn-lg {
@@ -808,7 +835,8 @@ body {
    ===================================================== */
 
 .dashboard-page {
-    background: var(--light-bg);
+    background: linear-gradient(180deg, var(--white) 0%, var(--grey-100) 35%, var(--accent-blue) 100%);
+    background-attachment: fixed;
     min-height: 100vh;
 }
 
@@ -860,17 +888,33 @@ body {
     letter-spacing: 0.5px;
 }
 
-/* Home tab value banner - ~1 inch tall, center aligned */
+/* Home tab value banner - styled label and value */
 .home-value-banner {
     min-height: 1in;
-    background: rgba(22, 163, 74, 0.12);
-    color: var(--grey-900);
-    border: 1px solid rgba(22, 163, 74, 0.25);
+    background: var(--grey-100);
+    border: 1px solid var(--grey-200);
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding: 0.5rem 1rem;
+    padding: 0.75rem 1.5rem;
+    gap: 0.5rem;
+}
+
+.home-value-banner .value-banner-label {
+    font-size: 1.75rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    color: var(--grey-600);
+}
+
+.home-value-banner .value-banner-amount {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--primary-color);
+    letter-spacing: -0.02em;
 }
 
 /* Home tab two sections - bordered; title/description/list each have consistent size across both columns */
@@ -878,6 +922,8 @@ body {
     border: 1px solid var(--grey-200);
     border-radius: 8px;
     padding: 1rem;
+    display: flex;
+    flex-direction: column;
 }
 
 .home-section-title {
@@ -889,6 +935,15 @@ body {
 .home-section-desc {
     font-size: 0.9rem;
     margin-bottom: 0.75rem;
+    min-height: 2.8rem;
+    flex-shrink: 0;
+}
+
+/* List area - same height for both sections, always scrollable */
+.home-section-list-scroll {
+    height: 420px;
+    overflow-y: auto;
+    margin-bottom: 0.5rem;
 }
 
 .home-matches-list.list-group-separated .list-group-item,
@@ -921,7 +976,7 @@ body {
     text-decoration: underline;
 }
 
-/* Grant Portfolio status badges (pastel, green theme) */
+/* Grant Portfolio status badges (pastel, yellow/gray theme) */
 .portfolio-status {
     font-size: 0.75rem;
     font-weight: 600;
@@ -931,8 +986,8 @@ body {
 }
 
 .portfolio-status-submitted {
-    background: #fef9c3;
-    color: #a16207;
+    background: #fef08a;
+    color: #ca8a04;
 }
 
 .portfolio-status-approved {
@@ -940,12 +995,18 @@ body {
     color: #166534;
 }
 
-.portfolio-status-in-progress {
-    background: #dbeafe;
-    color: #1e40af;
+.portfolio-status-in-progress,
+.portfolio-status-added {
+    background: #fef9c3;
+    color: #a16207;
 }
 
 .portfolio-status-new {
+    background: #fef9c3;
+    color: #a16207;
+}
+
+.portfolio-status-rejected {
     background: #fee2e2;
     color: #b91c1c;
 }
@@ -970,7 +1031,7 @@ body {
 
 .grant-card.favorite-card {
     border: 2px solid var(--primary-color);
-    background: rgba(22, 163, 74, 0.04);
+    background: rgba(234, 179, 8, 0.08);
 }
 
 .grant-header {
@@ -1279,7 +1340,7 @@ footer.bg-dark .container {
 }
 
 /* =====================================================
-   ALERTS (theme: green/grey, no red/blue/yellow)
+   ALERTS (theme: yellow/grey)
    ===================================================== */
 .alert-danger {
     background-color: rgba(55, 65, 81, 0.1);
@@ -1294,14 +1355,14 @@ footer.bg-dark .container {
 }
 
 .alert-success {
-    background-color: rgba(22, 163, 74, 0.1);
+    background-color: rgba(234, 179, 8, 0.15);
     border-color: var(--primary-color);
     color: var(--grey-900);
 }
 
 .alert-info {
-    background-color: rgba(22, 163, 74, 0.08);
-    border-color: var(--primary-light);
+    background-color: var(--accent-blue);
+    border-color: var(--accent-blue-border);
     color: var(--grey-900);
 }
 
@@ -1316,10 +1377,12 @@ footer.bg-dark .container {
 .btn-primary {
     background: var(--primary-color);
     border: none;
+    color: var(--black);
 }
 
 .btn-primary:hover {
     background: var(--primary-dark);
+    color: var(--black);
 }
 
 .btn-outline-primary {
@@ -1330,7 +1393,7 @@ footer.bg-dark .container {
 .btn-outline-primary:hover {
     background: var(--primary-color);
     border-color: var(--primary-color);
-    color: white;
+    color: var(--black);
 }
 
 .text-truncate-2 {
@@ -1401,7 +1464,7 @@ footer.bg-dark .container {
 
 .contact-form-input:focus {
     border-color: var(--primary-color) !important;
-    box-shadow: 0 0 0 0.2rem rgba(22, 163, 74, 0.25);
+    box-shadow: 0 0 0 0.2rem rgba(234, 179, 8, 0.25);
 }
 
 .contact-form-input[rows] {
@@ -1410,13 +1473,13 @@ footer.bg-dark .container {
 
 .contact-btn-primary {
     background-color: var(--primary-color);
-    color: var(--white);
+    color: var(--black);
     font-weight: 600;
 }
 
 .contact-btn-primary:hover {
     background-color: var(--primary-dark);
-    color: var(--white);
+    color: var(--black);
 }
 
 .contact-back-link {
