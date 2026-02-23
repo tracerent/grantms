@@ -10,11 +10,11 @@
             <div class="container">
                 <div class="row align-items-center justify-content-between">
                     <div class="col">
-                        <h1 class="fw-bold mb-1">Welcome, {{ user.get('name') or user['username'] }}!</h1>
-                        <p class="text-muted mb-0">{{ user['company_name'] or 'Complete your profile' }}</p>
+                        <h1 class="fw-bold mb-1">Welcome, {{ (user and (user.get('name') or user.get('username'))) or 'User' }}!</h1>
+                        <p class="text-muted mb-0">{{ (user and user.get('company_name')) or 'Complete your profile' }}</p>
                     </div>
                     <div class="col-auto">
-                        <a href="{{ url_for('contact') }}" class="btn btn-primary">Hire a Grant Writer</a>
+                        <a href="{{ url_for('contact') }}" class="btn btn-gradient-yellow">Hire a Grant Writer</a>
                     </div>
                 </div>
             </div>
@@ -57,27 +57,8 @@
             <div class="tab-content">
                 <!-- Home Tab -->
                 <div class="tab-pane fade show active" id="home" role="tabpanel">
-                    {% set default_matches = [
-                        {'title': 'Community Development Block Grant', 'funding_amount': 75000},
-                        {'title': 'Small Business Innovation Research', 'funding_amount': 150000},
-                        {'title': 'Rural Energy for America Program', 'funding_amount': 500000},
-                        {'title': 'Federal Pell Grant Program', 'funding_amount': 6895},
-                        {'title': 'Workforce Innovation and Opportunity Act', 'funding_amount': 250000},
-                        {'title': 'Export Development Canada SME Financing', 'funding_amount': 100000},
-                        {'title': 'Canada Job Grant Program', 'funding_amount': 15000},
-                        {'title': 'Industrial Research Assistance Program', 'funding_amount': 10000000},
-                        {'title': 'Strategic Innovation Fund', 'funding_amount': 10000000},
-                        {'title': 'Regional Development Agency Grants', 'funding_amount': 500000}
-                    ] %}
-                    {% set default_portfolio = [
-                        {'title': 'Community Development Block Grant', 'status': 'In Progress'},
-                        {'title': 'Small Business Innovation Research', 'status': 'Submitted'},
-                        {'title': 'Rural Energy for America Program', 'status': 'Added'},
-                        {'title': 'Federal Pell Grant Program', 'status': 'Approved'},
-                        {'title': 'Workforce Innovation and Opportunity Act', 'status': 'Rejected'}
-                    ] %}
-                    {% set display_matches = all_grants if (all_grants and all_grants|length > 5) else default_matches %}
-                    {% set display_portfolio = user_grants if (user_grants and user_grants|length > 0) else default_portfolio %}
+                    {# Your Matches = all_grants filtered by saved List Building filters; Grant Portfolio from user_grants #}
+                    {% set display_portfolio = user_grants or [] %}
                     {% set ns = namespace(total=0) %}
                     {% if user_grants and user_grants|length > 0 %}
                         {% for g in user_grants %}
@@ -86,32 +67,35 @@
                     {% endif %}
                     <div class="home-value-banner mb-3 rounded">
                         <span class="value-banner-label">Value of active grants : </span>
-                        <span class="value-banner-amount">${{ "{:,.0f}".format(ns.total) }}</span>
+                        <span class="value-banner-amount" id="home-value-amount">${{ "{:,.0f}".format(ns.total) }}</span>
                     </div>
                     <div class="row g-4">
                         <div class="col-lg-6 home-section">
                             <div class="title-banner home-section-title-banner">
-                                <h5 class="home-section-title mb-0">Your Matches <span class="title-banner-count">[{{ display_matches|length }}]</span></h5>
+                                <h5 class="home-section-title mb-0">Your Matches <span class="title-banner-count" id="home-matches-count">[{{ display_matches|length }}]</span></h5>
                             </div>
                             <p class="home-section-desc text-muted mb-3">Using these filtered grants you can build your grant portfolio. Adjust List Building filters at any time to view new opportunities.</p>
                             <div class="home-section-list-scroll" id="home-matches-list-scroll">
-                                <ul class="list-group list-group-flush home-matches-list list-group-separated">
+                                <ul class="list-group list-group-flush home-matches-list list-group-separated" id="home-matches-ul">
                                     {% for grant in display_matches %}
                                     <li class="list-group-item d-flex justify-content-between align-items-center">
                                         <span class="text-truncate flex-grow-1 me-2" title="{{ grant['title'] }}">{{ grant['title'] }}</span>
-                                        <span class="text-muted">${{ "{:,.0f}".format(grant['funding_amount']) }}</span>
+                                        <span class="text-muted">${{ "{:,.0f}".format(grant.funding_amount or 0) }}</span>
                                     </li>
                                     {% endfor %}
+                                    {% if not display_matches %}
+                                    <li class="list-group-item text-muted text-center py-4">No grants in the list yet. Go to <strong>List Building</strong> to view and filter grants.</li>
+                                    {% endif %}
                                 </ul>
                             </div>
                         </div>
                         <div class="col-lg-6 home-section">
                             <div class="title-banner home-section-title-banner">
-                                <h5 class="home-section-title mb-0">Grant Portfolio <span class="title-banner-count">[{{ display_portfolio|length }}]</span></h5>
+                                <h5 class="home-section-title mb-0">Grant Portfolio <span class="title-banner-count" id="home-portfolio-count">[{{ display_portfolio|length }}]</span></h5>
                             </div>
                             <p class="home-section-desc text-muted mb-3">Grants that you have added to your portfolio.</p>
                             <div class="home-section-list-scroll" id="home-portfolio-list-scroll">
-                                <ul class="list-group list-group-flush home-portfolio-list list-group-separated">
+                                <ul class="list-group list-group-flush home-portfolio-list list-group-separated" id="home-portfolio-ul">
                                     {% for grant in display_portfolio %}
                                     <li class="list-group-item d-flex justify-content-between align-items-center">
                                         <span class="text-truncate flex-grow-1 me-2" title="{{ grant['title'] }}">{{ grant['title'] }}</span>
@@ -128,6 +112,9 @@
                                         {% endif %}
                                     </li>
                                     {% endfor %}
+                                    {% if not display_portfolio %}
+                                    <li class="list-group-item text-muted text-center py-4">No grant selected. Use <strong>List Building</strong> to add grants to your portfolio.</li>
+                                    {% endif %}
                                 </ul>
                             </div>
                         </div>
@@ -137,10 +124,100 @@
                 <!-- List Building Tab -->
                 <div class="tab-pane fade" id="list-building" role="tabpanel">
                     <h4 class="mb-3">List Building</h4>
-                    <p class="text-muted">Build and manage your grant lists here. This section can be customized with filters and saved lists.</p>
-                    <div class="alert alert-light border">
-                        <p class="mb-0">List building features coming soon. Use <strong>Add Grants</strong> to browse grants and <strong>Saved Grants</strong> to keep favorites.</p>
+                    <p class="text-muted mb-4">Build and manage your grant lists here. Sort, search, and filter to find grants, then add them to your Grant Portfolio.</p>
+
+                    <!-- Sort (left) | Search (right) -->
+                    <div class="row align-items-center mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted mb-1">Sort by</label>
+                            <select id="lb-sort" class="form-select form-select-sm lb-sort-select">
+                                <option value="name-asc">Alphabetically (A → Z)</option>
+                                <option value="name-desc">Alphabetically (Z → A)</option>
+                                <option value="date-desc">Newest to oldest</option>
+                                <option value="date-asc">Oldest to newest</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted mb-1 d-block">&nbsp;</label>
+                            <input type="text" id="lb-search" class="form-control form-control-sm" placeholder="Search grants..." autocomplete="off">
+                        </div>
                     </div>
+
+                    <!-- Filter button + count (left) | Paginator (right) -->
+                    <div class="row align-items-end mb-3">
+                        <div class="col-md-6 d-flex align-items-center gap-3 flex-wrap">
+                            <button type="button" class="btn btn-gradient-yellow btn-sm" id="lb-filter-btn" aria-expanded="false">
+                                <i class="bi bi-funnel me-1"></i> Filters
+                            </button>
+                            <span id="lb-grant-count" class="lb-grant-count badge bg-light text-dark border">0 grants found</span>
+                        </div>
+                        <div class="col-md-6">
+                            <nav id="lb-pagination" class="d-flex justify-content-md-end align-items-center flex-wrap gap-2" aria-label="Grant list pagination">
+                                <button type="button" class="btn btn-sm btn-outline-secondary lb-page-prev" aria-label="Previous page" disabled><i class="bi bi-chevron-left"></i></button>
+                                <div id="lb-page-links" class="d-flex flex-wrap gap-1 align-items-center"></div>
+                                <button type="button" class="btn btn-sm btn-outline-secondary lb-page-next" aria-label="Next page" disabled><i class="bi bi-chevron-right"></i></button>
+                                <span class="small text-muted ms-2" id="lb-page-indicator">Page 1</span>
+                            </nav>
+                        </div>
+                    </div>
+
+                    <!-- Filter overlay panel (in front of content when open) -->
+                    <div id="lb-filter-panel" class="lb-filter-panel shadow rounded border bg-white p-4 mb-3" style="display: none;">
+                        <h6 class="mb-3">Filters</h6>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6 col-lg-4">
+                                <label class="form-label small fw-semibold">Status</label>
+                                <select id="filter-status" class="form-select form-select-sm lb-filter-select" data-filter="status">
+                                    <option value="">All (default)</option>
+                                    <option value="Open">Open</option>
+                                    <option value="Closed">Closed</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-6 col-lg-4">
+                                <label class="form-label small fw-semibold">Funding For</label>
+                                <select id="filter-funding-for" class="form-select form-select-sm lb-filter-select" data-filter="funding_for">
+                                    <option value="">All of the above (default)</option>
+                                    <option value="AI/Machine Learning">AI/Machine Learning</option>
+                                    <option value="Business Planning">Business Planning</option>
+                                    <option value="Marketing and Sales">Marketing and Sales</option>
+                                    <option value="Operations">Operations</option>
+                                    <option value="Research & Development">Research & Development</option>
+                                    <option value="Intellectual Property">Intellectual Property</option>
+                                    <option value="Hiring">Hiring</option>
+                                    <option value="Hiring Contractors">Hiring Contractors</option>
+                                    <option value="Training/Upskilling">Training/Upskilling</option>
+                                    <option value="Sustainablity (ESG)">Sustainablity (ESG)</option>
+                                    <option value="Improve Operations">Improve Operations</option>
+                                    <option value="Expansion & Scaling">Expansion & Scaling</option>
+                                    <option value="Expand Internationally">Expand Internationally</option>
+                                    <option value="Work with Research Facilities">Work with Research Facilities</option>
+                                    <option value="Tax Credits">Tax Credits</option>
+                                    <option value="Crowd Funding">Crowd Funding</option>
+                                </select>
+                            </div>
+                            <!-- Placeholder filters (UI only for now) -->
+                            <div class="col-12 col-md-6 col-lg-4"><label class="form-label small fw-semibold">Funding Range</label><select class="form-select form-select-sm" disabled><option>—</option></select></div>
+                            <div class="col-12 col-md-6 col-lg-4"><label class="form-label small fw-semibold">Number of Employees</label><select class="form-select form-select-sm" disabled><option>—</option></select></div>
+                            <div class="col-12 col-md-6 col-lg-4"><label class="form-label small fw-semibold">Province</label><select class="form-select form-select-sm" disabled><option>—</option></select></div>
+                            <div class="col-12 col-md-6 col-lg-4"><label class="form-label small fw-semibold">Industry</label><select class="form-select form-select-sm" disabled><option>—</option></select></div>
+                            <div class="col-12 col-md-6 col-lg-4"><label class="form-label small fw-semibold">Type of Business</label><select class="form-select form-select-sm" disabled><option>—</option></select></div>
+                            <div class="col-12 col-md-6 col-lg-4"><label class="form-label small fw-semibold">Any of the owners identify as</label><select class="form-select form-select-sm" disabled><option>—</option></select></div>
+                            <div class="col-12 col-md-6 col-lg-4"><label class="form-label small fw-semibold">Revenue</label><select class="form-select form-select-sm" disabled><option>—</option></select></div>
+                            <div class="col-12 col-md-6 col-lg-4"><label class="form-label small fw-semibold">Type of Support</label><select class="form-select form-select-sm" disabled><option>—</option></select></div>
+                            <div class="col-12 col-md-6 col-lg-4"><label class="form-label small fw-semibold">Stage of the Project</label><select class="form-select form-select-sm" disabled><option>—</option></select></div>
+                            <div class="col-12 col-md-6 col-lg-4"><label class="form-label small fw-semibold">Stage we want funding for</label><select class="form-select form-select-sm" disabled><option>—</option></select></div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="lb-filter-clear">Clear filters</button>
+                            <button type="button" class="btn btn-primary btn-sm" id="lb-filter-apply">Apply</button>
+                        </div>
+                    </div>
+
+                    <!-- Selected filters (chips with x) -->
+                    <div id="lb-active-filters" class="mb-3 d-flex flex-wrap gap-2 align-items-center" style="min-height: 2rem;"></div>
+
+                    <!-- Grant list (accordions, 10 per page) -->
+                    <div id="lb-grant-list" class="lb-grant-list accordion mb-4"></div>
                 </div>
 
                 <!-- Account Tab -->
@@ -184,9 +261,6 @@
                                             <button class="btn btn-sm btn-primary flex-grow-1 apply-grant" data-grant-id="{{ grant['id'] }}">
                                                 Apply Now
                                             </button>
-                                            <button class="btn btn-sm btn-outline-warning toggle-favorite" data-grant-id="{{ grant['id'] }}">
-                                                ★
-                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -195,7 +269,7 @@
                     {% else %}
                         <div class="alert alert-info">
                             <h5>No saved grants</h5>
-                            <p>Find and save grants you're interested in!</p>
+                            <p>Use List Building to star grants and add them to your portfolio.</p>
                         </div>
                     {% endif %}
                 </div>
@@ -211,7 +285,6 @@
                                 <div class="grant-card">
                                     <div class="grant-header">
                                         <h5 class="grant-title">{{ grant['title'] }}</h5>
-                                        {% set is_favorite = grant['id'] in favorites|map(attribute='id')|list %}
                                         {% set is_applied = grant['id'] in user_grants|map(attribute='id')|list %}
                                     </div>
                                     <p class="text-muted small">{{ grant['agency'] }}</p>
@@ -240,10 +313,6 @@
                                                 Apply Now
                                             </button>
                                         {% endif %}
-                                        <button class="btn btn-sm btn-outline-warning toggle-favorite" data-grant-id="{{ grant['id'] }}" 
-                                                data-favorite="{% if is_favorite %}true{% else %}false{% endif %}">
-                                            {% if is_favorite %}★{% else %}☆{% endif %}
-                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -278,7 +347,7 @@
                                             </div>
                                             <div class="detail-item">
                                                 <span class="label">Applied:</span>
-                                                <span class="value">{{ grant['applied_date'][:10] }}</span>
+                                                <span class="value">{{ grant['applied_date'].strftime('%Y-%m-%d') }}</span>
                                             </div>
                                         </div>
 
@@ -316,6 +385,25 @@
         </div>
     </div>
 
+    <!-- Quarter selection modal (add grant to portfolio) -->
+    <div class="modal fade" id="quarterModal" tabindex="-1" aria-labelledby="quarterModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="quarterModalLabel">Add to Grant Portfolio</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">Choose the quarter for which you are adding this grant.</p>
+                    <div id="quarter-options" class="d-grid gap-2"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Profile Modal -->
     <div class="modal fade" id="profileModal" tabindex="-1">
         <div class="modal-dialog">
@@ -328,7 +416,7 @@
                     <div class="modal-body">
                         <div class="mb-3">
                             <label class="form-label">Company Name</label>
-                            <input type="text" class="form-control" value="{{ user['company_name'] or '' }}" disabled>
+                            <input type="text" class="form-control" value="{{ (user and user.get('company_name')) or '' }}" disabled>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -341,5 +429,13 @@
     </div>
 </div>
 
+<script>
+window.LB_GRANTS = {{ (all_grants or [])|tojson }};
+window.LB_PORTFOLIO_GRANT_IDS = {{ (portfolio_grant_ids or [])|tojson }};
+window.LB_PORTFOLIO_INFO = {{ (portfolio_grants_info or [])|tojson }};
+window.LB_SAVED_FILTERS = {{ (saved_filters or {})|tojson }};
+window.LB_FAVORITE_IDS = {{ (favorites or [])|map(attribute='id')|list|tojson }};
+</script>
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script src="{{ url_for('static', filename='js/list-building.js') }}"></script>
 {% endblock %}

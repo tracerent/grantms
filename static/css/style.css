@@ -183,6 +183,7 @@ body {
 .navbar-logo {
     height: 70px;
     width: auto;
+    margin-left: 1.5rem;
 }
 
 .nav-link-theme {
@@ -203,8 +204,37 @@ body {
     border-color: var(--black) !important;
 }
 
+/* Yellow gradient fill: nav Sign In/Profile + Sign In with Email, Hire a Grant Writer, Filters, etc. */
+.btn-nav-cta,
+.btn-gradient-yellow {
+    background: linear-gradient(135deg, #fef08a 0%, #facc15 50%, #eab308 100%);
+    color: var(--black) !important;
+    border: 1px solid rgba(202, 138, 4, 0.4);
+    font-weight: 600;
+}
+.btn-nav-cta:hover,
+.btn-nav-cta:focus,
+.btn-nav-cta.show,
+.btn-gradient-yellow:hover,
+.btn-gradient-yellow:focus,
+.btn-gradient-yellow:active {
+    background: linear-gradient(135deg, #fef08a 0%, #eab308 50%, #ca8a04 100%);
+    color: var(--black) !important;
+    border-color: var(--primary-dark);
+}
+
 .navbar .navbar-toggler {
     border-color: rgba(0, 0, 0, 0.3);
+}
+
+/* Pull nav links + actions a bit in from the right edge */
+.navbar-collapse-right {
+    margin-right: 1.5rem;
+}
+
+/* Space between last nav link (e.g. Dashboard) and Profile button; accounts for button border */
+.navbar-actions {
+    margin-left: 1.25rem;
 }
 
 /* Navbar toggler: default dark icon on gray background (no filter needed) */
@@ -1547,3 +1577,56 @@ footer.bg-dark .container {
 .faq-content table { border-collapse: collapse; margin-bottom: 1rem; width: 100%; }
 .faq-content th, .faq-content td { border: 1px solid var(--border-color, #dee2e6); padding: 0.5rem 0.75rem; text-align: left; }
 .faq-content th { font-weight: 600; background: var(--light-bg, #f8f9fa); }
+
+/* =====================================================
+   LIST BUILDING (dashboard)
+   ===================================================== */
+.lb-sort-select { max-width: 16rem; }
+.lb-grant-count { font-weight: 500; padding: 0.35rem 0.65rem; }
+
+.lb-filter-panel {
+    position: relative;
+    z-index: 10;
+}
+.lb-filter-panel .form-label { margin-bottom: 0.25rem; }
+
+#lb-active-filters .badge button { padding: 0 0.25rem; }
+#lb-active-filters .badge .btn-close-sm { margin-left: 0.15rem; }
+
+.lb-grant-list.accordion { border: none; }
+.lb-accordion-item {
+    border: 1px solid var(--grey-200);
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+    background: var(--white);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.lb-accordion-item:last-child { margin-bottom: 0; }
+.lb-accordion-item .accordion-header { border: none; }
+.lb-accordion-item .accordion-button {
+    font-size: 1rem;
+    padding: 1rem 1.25rem;
+    background: var(--white) !important;
+    border: none !important;
+}
+.lb-accordion-item .accordion-button:not(.collapsed) { box-shadow: none !important; }
+.lb-accordion-item .accordion-button::after { display: none; }
+.lb-grant-name { font-size: 1.1rem; font-weight: 600; color: var(--grey-900); }
+.lb-accordion-body { border-top: 1px solid var(--grey-200); background: var(--grey-100); }
+.lb-grant-detail { padding: 0 1.25rem 1.25rem; }
+.lb-grant-detail dl { margin-bottom: 0; }
+.lb-grant-detail dt { font-weight: 600; color: var(--grey-600); }
+.lb-grant-detail dd { margin-bottom: 0.5rem; }
+.lb-accordion-item .accordion-collapse-chevron i {
+    transition: transform 0.2s ease;
+    font-size: 1.1rem;
+    color: var(--grey-500);
+}
+.lb-accordion-item:has(.accordion-collapse.show) .accordion-collapse-chevron i { transform: rotate(180deg); }
+.lb-star-btn { font-size: 1.25rem; line-height: 1; }
+.lb-star-btn:hover { opacity: 0.85; }
+.lb-star-btn .bi-star-fill { color: var(--primary-color); }
+
+.lb-page-num { min-width: 2rem; }
+#lb-list-building [title] { cursor: pointer; }

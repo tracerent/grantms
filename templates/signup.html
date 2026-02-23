@@ -10,7 +10,6 @@
                 <div class="auth-card">
                     <div class="text-center mb-4">
                         <h2 class="fw-bold">Create Your Account</h2>
-                        <p class="text-muted">Start your journey to finding funding</p>
                     </div>
 
                     <!-- Top: Company name and Name (mandatory for both email sign-up and Google/Microsoft/Apple) -->
@@ -45,7 +44,7 @@
                             <small class="text-muted">At least 6 characters</small>
                             <p class="text-danger small mb-0 mt-1 d-none" id="password-too-short">Password too short</p>
                         </div>
-                        <button type="submit" class="btn btn-primary btn-lg w-100 mb-3">Create Account</button>
+                        <button type="submit" class="btn btn-gradient-yellow btn-lg w-100 mb-3">Create Account</button>
                     </form>
 
                     <div class="text-center my-3">
@@ -67,8 +66,7 @@
                                 <i class="bi bi-apple oauth-icon-apple" style="font-size: 1.5rem;"></i>
                             </button>
                         </div>
-                    </form><br>
-                    <p class="text-center text-muted small mb-2">Company name and Your name above are still required.</p>
+                    </form>
                     <script src="{{ url_for('static', filename='js/signin.js') }}"></script>
                     <script>
                     (function() {

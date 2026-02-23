@@ -7,17 +7,30 @@ from utils.config import get_flask_config, get_oauth_config, get_mail_config
 from utils.database import (
     init_db, create_user, get_user_by_id, get_user_by_username, get_user_by_email,
     get_user_by_oauth, create_oauth_user, link_oauth_to_user,
-    update_user_profile, create_contact_submission,
+    update_user_profile, get_user_filter_settings, save_user_filter_settings,
     create_reset_token, get_reset_token_user_id, delete_reset_token, update_user_password,
-    get_all_grants, apply_for_grant,
-    update_grant_status, get_user_grants, add_favorite, remove_favorite,
-    is_favorite, get_user_favorites
+    get_all_grants, apply_for_grant, add_grant_to_portfolio, remove_grant_from_portfolio,
+    update_grant_status, get_user_grants,
 )
 from authlib.integrations.flask_client import OAuth
 import mammoth
 from bs4 import BeautifulSoup
 
 app = Flask(__name__)
+
+
+def login_required(f):
+    """Redirect to signin if user is not logged in. Use for dashboard and other page routes."""
+    from functools import wraps
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        if "user_id" not in session:
+            flash("Please sign in first", "warning")
+            next_url = request.url if request.url else url_for("dashboard")
+            return redirect(url_for("signin", next=next_url))
+        return f(*args, **kwargs)
+    return wrapped
+
 
 # Resource categories (key -> name, description, coming_soon)
 RESOURCE_FOLDERS = {
@@ -82,6 +95,12 @@ if _oauth_cfg.get("apple", {}).get("client_id"):
 @app.route("/")
 def index():
     return redirect(url_for("home"))
+
+
+@app.errorhandler(404)
+def not_found(_e):
+    """Display 404 page for undefined URLs."""
+    return render_template("404.html"), 404
 
 def _get_resources_path():
     return os.path.join(os.path.dirname(__file__), "static", "resources")
@@ -313,12 +332,7 @@ def submit_contact():
         flash("Message cannot exceed 1000 characters", "danger")
         return redirect(url_for("contact", type=contact_type))
     
-    try:
-        create_contact_submission(name, email, message, contact_type)
-        flash(f"Thank you, {name}! We received your request and will contact you at {email} soon.", "success")
-    except Exception as e:
-        flash("We couldn't save your request. Please try again or email us directly.", "danger")
-        return redirect(url_for("contact", type=contact_type))
+    flash(f"Thank you, {name}! We received your request and will contact you at {email} soon.", "success")
     return redirect(url_for("home"))
 
 
@@ -465,20 +479,99 @@ def signout():
     flash("Signed out successfully", "info")
     return redirect(url_for("home"))
 
+def _apply_grants_filters(grants_list, filters_dict):
+    """Apply List Building filters (status, funding_for) to a list of grant dicts. Same logic as list-building.js."""
+    if not grants_list:
+        return []
+    if not filters_dict:
+        return list(grants_list)
+    out = list(grants_list)
+    status = (filters_dict.get("status") or "").strip()
+    if status:
+        out = [g for g in out if (g.get("status") or "") == status]
+    funding_for = (filters_dict.get("funding_for") or "").strip()
+    if funding_for:
+        want = funding_for.lower()
+        out = [
+            g for g in out
+            if want in (g.get("category") or "").lower() or want in (g.get("funding_for") or "").lower()
+        ]
+    return out
+
+
 @app.route("/dashboard")
+@login_required
 def dashboard():
-    if "user_id" not in session:
-        flash("Please sign in first", "warning")
-        return redirect(url_for("signin"))
-    
     user_id = session["user_id"]
     user = get_user_by_id(user_id)
+    if not user:
+        session.clear()
+        flash("Your session is invalid. Please sign in.", "warning")
+        return redirect(url_for("signin"))
     user_grants = get_user_grants(user_id)
-    favorites = get_user_favorites(user_id)
     all_grants = get_all_grants()
+    saved_filters = get_user_filter_settings(user_id)
+    display_matches = _apply_grants_filters(all_grants, saved_filters or {})
+    portfolio_grant_ids = [g["id"] for g in user_grants] if user_grants else []
+    portfolio_grants_info = [{"id": g["id"], "year": g.get("year"), "quarter": g.get("quarter")} for g in (user_grants or [])]
     
     return render_template("dashboard.html", user=user, user_grants=user_grants, 
-                         favorites=favorites, all_grants=all_grants)
+                         favorites=[], all_grants=all_grants, display_matches=display_matches,
+                         portfolio_grant_ids=portfolio_grant_ids,
+                         portfolio_grants_info=portfolio_grants_info, saved_filters=saved_filters)
+
+
+@app.route("/api/save-list-filters", methods=["POST"])
+def api_save_list_filters():
+    """Save List Building filter settings for the current user."""
+    if "user_id" not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    data = request.json or {}
+    filters = {
+        "status": (data.get("status") or "").strip(),
+        "funding_for": (data.get("funding_for") or "").strip(),
+    }
+    try:
+        save_user_filter_settings(session["user_id"], filters)
+        return jsonify({"success": True}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/dashboard-home")
+def api_dashboard_home():
+    """Return fresh Home tab data (user_grants, matches by saved filters, total_value). Your Matches respect List Building filters."""
+    if "user_id" not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    user_id = session["user_id"]
+    user_grants = get_user_grants(user_id)
+    all_grants = get_all_grants()
+    saved_filters = get_user_filter_settings(user_id)
+    display_matches = _apply_grants_filters(all_grants, saved_filters or {})
+    total_value = 0
+    for g in (user_grants or []):
+        amt = g.get("funding_amount")
+        total_value += float(amt) if amt is not None else 0
+    # Serialize for JSON (Decimal/datetime)
+    def grant_for_json(g):
+        return {
+            "id": g.get("id"),
+            "title": g.get("title") or "",
+            "status": g.get("status") or "",
+            "funding_amount": float(g["funding_amount"]) if g.get("funding_amount") is not None else 0,
+        }
+    def match_for_json(g):
+        return {
+            "id": g.get("id"),
+            "title": g.get("title") or "",
+            "funding_amount": float(g["funding_amount"]) if g.get("funding_amount") is not None else 0,
+        }
+    return jsonify({
+        "user_grants": [grant_for_json(g) for g in (user_grants or [])],
+        "all_grants": [match_for_json(g) for g in display_matches],
+        "total_value": total_value,
+    })
+
 
 @app.route("/apply-grant", methods=["POST"])
 def apply_grant():
@@ -511,26 +604,44 @@ def update_grant_status_route():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route("/toggle-favorite", methods=["POST"])
-def toggle_favorite():
+@app.route("/add-grant-to-portfolio", methods=["POST"])
+def add_grant_to_portfolio_route():
     if "user_id" not in session:
         return jsonify({"error": "Not logged in"}), 401
-    
+
+    data = request.json
+    grant_id = data.get("grant_id")
+    quarter = (data.get("quarter") or "").strip()
+    user_id = session["user_id"]
+
+    if not quarter:
+        return jsonify({"error": "Quarter is required"}), 400
+
+    try:
+        add_grant_to_portfolio(user_id, grant_id, quarter)
+        return jsonify({"success": True, "message": "Grant added to portfolio"}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/remove-grant-from-portfolio", methods=["POST"])
+def remove_grant_from_portfolio_route():
+    if "user_id" not in session:
+        return jsonify({"error": "Not logged in"}), 401
+
     data = request.json
     grant_id = data.get("grant_id")
     user_id = session["user_id"]
-    
+
+    if grant_id is None:
+        return jsonify({"error": "grant_id is required"}), 400
+
     try:
-        if is_favorite(user_id, grant_id):
-            remove_favorite(user_id, grant_id)
-            message = "Removed from favorites"
-        else:
-            add_favorite(user_id, grant_id)
-            message = "Added to favorites"
-        
-        return jsonify({"success": True, "message": message}), 200
+        remove_grant_from_portfolio(user_id, grant_id)
+        return jsonify({"success": True, "message": "Grant removed from portfolio"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 @app.route("/update-profile", methods=["POST"])
 def update_profile():

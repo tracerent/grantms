@@ -1,5 +1,6 @@
+import json
 import pymysql
-import os
+import re
 from datetime import datetime
 from utils.config import get_db_config
 
@@ -21,12 +22,54 @@ def get_db():
     return pymysql.connect(**DB_CONFIG)
 
 
+# Sample grants for dashboard / list building (seed when grants table is empty)
+SAMPLE_GRANTS = [
+    ("Community Development Block Grant", "U.S. HUD", 75000, "Research & Development"),
+    ("Small Business Innovation Research", "U.S. SBA", 150000, "Research & Development"),
+    ("Rural Energy for America Program", "USDA", 500000, "Sustainability (ESG)"),
+    ("Federal Pell Grant Program", "U.S. Department of Education", 6895, "Training/Upskilling"),
+    ("Workforce Innovation and Opportunity Act", "U.S. DOL", 250000, "Hiring"),
+    ("Export Development Canada SME Financing", "EDC Canada", 100000, "Expand Internationally"),
+    ("Canada Job Grant Program", "Government of Canada", 15000, "Hiring"),
+    ("Industrial Research Assistance Program", "NRC IRAP", 10000000, "Research & Development"),
+    ("Strategic Innovation Fund", "ISED Canada", 10000000, "Expansion & Scaling"),
+    ("Regional Development Agency Grants", "Canadian RDAs", 500000, "Expansion & Scaling"),
+]
+
+
+def _seed_sample_grants(cursor):
+    """Insert sample grant rows. Sets status and funding_for when those columns exist."""
+    base_desc = "Eligibility and application details available from the funding organization."
+    base_eligibility = "See official program guidelines for eligibility requirements."
+    for title, agency, funding_amount, category in SAMPLE_GRANTS:
+        # Use category for funding_for so List Building filter can match
+        cursor.execute(
+            """
+            INSERT INTO grants (title, agency, description, funding_amount, deadline, category, funding_for, location, eligibility, url, status)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                title,
+                agency,
+                base_desc,
+                funding_amount,
+                "2026-12-31",
+                category,
+                category,
+                "Canada",
+                base_eligibility,
+                "https://example.com/grant-info",
+                "Open",
+            ),
+        )
+
+
 def init_db():
-    """Initialize database with tables if they don't exist."""
+    """Initialize database with tables if they don't exist. CREATE only (no ALTER)."""
     connection = get_db()
     try:
         with connection.cursor() as cursor:
-            # Users table (name, email, company; password or OAuth)
+            # Users table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS users (
                     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -38,24 +81,16 @@ def init_db():
                     company_description TEXT,
                     auth_provider VARCHAR(50),
                     auth_provider_id VARCHAR(255),
+                    list_building_filters TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             """)
-            # Migrate existing table: add new columns if missing (for existing DBs)
-            for col_sql in [
-                "ALTER TABLE users ADD COLUMN name VARCHAR(255) AFTER id",
-                "ALTER TABLE users ADD COLUMN auth_provider VARCHAR(50) AFTER company_description",
-                "ALTER TABLE users ADD COLUMN auth_provider_id VARCHAR(255) AFTER auth_provider",
-                "ALTER TABLE users MODIFY COLUMN password VARCHAR(255) NULL",
-            ]:
-                try:
-                    cursor.execute(col_sql)
-                    connection.commit()
-                except (pymysql.OperationalError, pymysql.InternalError) as e:
-                    if "Duplicate column" in str(e) or "1060" in str(e):
-                        pass
-                    else:
-                        raise
+            try:
+                cursor.execute("ALTER TABLE users ADD COLUMN list_building_filters TEXT AFTER auth_provider_id")
+                connection.commit()
+            except (pymysql.OperationalError, pymysql.InternalError) as e:
+                if "Duplicate column" not in str(e) and "1060" not in str(e):
+                    raise
 
             # Grants table
             cursor.execute("""
@@ -67,20 +102,24 @@ def init_db():
                     funding_amount DECIMAL(15, 2),
                     deadline VARCHAR(255),
                     category VARCHAR(255),
+                    funding_for VARCHAR(255),
                     location VARCHAR(255),
                     eligibility TEXT,
                     url VARCHAR(2048),
+                    status VARCHAR(50) DEFAULT 'Open',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             """)
 
-            # User Grants table
+            # User Grants table: one row per (user_id, grant_id); year and quarter (numerical) from star flow
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS user_grants (
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     user_id INT NOT NULL,
                     grant_id INT NOT NULL,
-                    status VARCHAR(50) DEFAULT 'Applied',
+                    year INT NOT NULL,
+                    quarter INT NOT NULL,
+                    status VARCHAR(50) DEFAULT 'Added',
                     applied_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     notes TEXT,
                     FOREIGN KEY (user_id) REFERENCES users(id),
@@ -89,30 +128,11 @@ def init_db():
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             """)
 
-            # Favorites table
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS favorites (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    user_id INT NOT NULL,
-                    grant_id INT NOT NULL,
-                    saved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (user_id) REFERENCES users(id),
-                    FOREIGN KEY (grant_id) REFERENCES grants(id),
-                    UNIQUE(user_id, grant_id)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-            """)
-
-            # Contact / quote submissions (separate from users - no login)
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS contact_submissions (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    name VARCHAR(255) NOT NULL,
-                    email VARCHAR(255) NOT NULL,
-                    message TEXT NOT NULL,
-                    contact_type VARCHAR(50) NOT NULL DEFAULT 'contact',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-            """)
+            # Seed sample grants if table is empty
+            cursor.execute("SELECT COUNT(*) AS n FROM grants")
+            if cursor.fetchone()["n"] == 0:
+                _seed_sample_grants(cursor)
+                connection.commit()
 
             # Password reset tokens (for forgot password)
             cursor.execute("""
@@ -237,18 +257,37 @@ def update_user_profile(user_id):
         connection.close()
 
 
-# Contact / quote submissions (separate from users - no login)
-def create_contact_submission(name, email, message, contact_type="contact"):
-    """Save a contact or quote request. Does not create a user account."""
+def get_user_filter_settings(user_id):
+    """Get saved List Building filter settings as a dict. Returns {} if none or invalid JSON."""
     connection = get_db()
     try:
         with connection.cursor() as cursor:
-            cursor.execute("""
-                INSERT INTO contact_submissions (name, email, message, contact_type)
-                VALUES (%s, %s, %s, %s)
-            """, (name, email, message, contact_type))
+            cursor.execute(
+                "SELECT list_building_filters FROM users WHERE id = %s",
+                (user_id,),
+            )
+            row = cursor.fetchone()
+            if not row or not row.get("list_building_filters"):
+                return {}
+            try:
+                return json.loads(row["list_building_filters"]) or {}
+            except (TypeError, ValueError):
+                return {}
+    finally:
+        connection.close()
+
+
+def save_user_filter_settings(user_id, filters_dict):
+    """Save List Building filter settings. filters_dict should be JSON-serializable (e.g. {status: '', funding_for: ''})."""
+    connection = get_db()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "UPDATE users SET list_building_filters = %s WHERE id = %s",
+                (json.dumps(filters_dict or {}), user_id),
+            )
             connection.commit()
-            return cursor.lastrowid
+            return cursor.rowcount
     finally:
         connection.close()
 
@@ -332,16 +371,53 @@ def get_grant_by_id(grant_id):
 
 
 # User Grants operations
+def _current_year_quarter():
+    """Return (year, quarter) for current date. Quarter is 1-4."""
+    now = datetime.now()
+    return (now.year, (now.month - 1) // 3 + 1)
+
+
+def _parse_quarter_string(quarter_str):
+    """Parse '2026 Q2' to (year, quarter). Quarter 1-4. Returns (None, None) if invalid."""
+    if not quarter_str or not isinstance(quarter_str, str):
+        return (None, None)
+    s = quarter_str.strip()
+    m = re.match(r"(\d{4})\s*[Qq]\s*([1-4])$", s)
+    if m:
+        return (int(m.group(1)), int(m.group(2)))
+    return (None, None)
+
+
 def apply_for_grant(user_id, grant_id):
-    """Apply for a grant."""
+    """Apply for a grant (insert with current year/quarter)."""
+    year, quarter = _current_year_quarter()
     connection = get_db()
     try:
         with connection.cursor() as cursor:
             cursor.execute("""
-                INSERT INTO user_grants (user_id, grant_id, status)
-                VALUES (%s, %s, 'Applied')
-                ON DUPLICATE KEY UPDATE status = 'Applied', applied_date = CURRENT_TIMESTAMP
-            """, (user_id, grant_id))
+                INSERT INTO user_grants (user_id, grant_id, year, quarter, status)
+                VALUES (%s, %s, %s, %s, 'Applied')
+                ON DUPLICATE KEY UPDATE status = 'Applied', year = %s, quarter = %s, applied_date = CURRENT_TIMESTAMP
+            """, (user_id, grant_id, year, quarter, year, quarter))
+            connection.commit()
+            return cursor.lastrowid if cursor.lastrowid else True
+    finally:
+        connection.close()
+
+
+def add_grant_to_portfolio(user_id, grant_id, quarter_str):
+    """Add grant to portfolio. quarter_str e.g. '2026 Q2'; stored as year (int) and quarter (int 1-4)."""
+    year, quarter = _parse_quarter_string(quarter_str)
+    if year is None or quarter is None:
+        raise ValueError("Invalid quarter; expected e.g. '2026 Q2'")
+    connection = get_db()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                INSERT INTO user_grants (user_id, grant_id, year, quarter, status)
+                VALUES (%s, %s, %s, %s, 'Added')
+                ON DUPLICATE KEY UPDATE year = %s, quarter = %s, status = 'Added', applied_date = CURRENT_TIMESTAMP
+            """, (user_id, grant_id, year, quarter, year, quarter))
             connection.commit()
             return cursor.lastrowid if cursor.lastrowid else True
     finally:
@@ -363,13 +439,28 @@ def update_grant_status(user_id, grant_id, status):
         connection.close()
 
 
-def get_user_grants(user_id):
-    """Get grants applied by a user."""
+def remove_grant_from_portfolio(user_id, grant_id):
+    """Remove a grant from the user's portfolio."""
     connection = get_db()
     try:
         with connection.cursor() as cursor:
             cursor.execute("""
-                SELECT g.*, ug.status, ug.applied_date, ug.notes
+                DELETE FROM user_grants
+                WHERE user_id = %s AND grant_id = %s
+            """, (user_id, grant_id))
+            connection.commit()
+            return cursor.rowcount
+    finally:
+        connection.close()
+
+
+def get_user_grants(user_id):
+    """Get grants applied by a user (includes portfolio with year and quarter)."""
+    connection = get_db()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT g.*, ug.status, ug.applied_date, ug.notes, ug.year, ug.quarter
                 FROM user_grants ug
                 JOIN grants g ON ug.grant_id = g.id
                 WHERE ug.user_id = %s
@@ -380,66 +471,3 @@ def get_user_grants(user_id):
         connection.close()
 
 
-# Favorites operations
-def add_favorite(user_id, grant_id):
-    """Add grant to favorites."""
-    connection = get_db()
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute("""
-                INSERT INTO favorites (user_id, grant_id)
-                VALUES (%s, %s)
-            """, (user_id, grant_id))
-            connection.commit()
-            return cursor.lastrowid
-    except pymysql.IntegrityError:
-        # Already exists, return False
-        return False
-    finally:
-        connection.close()
-
-
-def remove_favorite(user_id, grant_id):
-    """Remove grant from favorites."""
-    connection = get_db()
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute("""
-                DELETE FROM favorites
-                WHERE user_id = %s AND grant_id = %s
-            """, (user_id, grant_id))
-            connection.commit()
-            return cursor.rowcount
-    finally:
-        connection.close()
-
-
-def is_favorite(user_id, grant_id):
-    """Check if grant is favorited by user."""
-    connection = get_db()
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute("""
-                SELECT id FROM favorites
-                WHERE user_id = %s AND grant_id = %s
-            """, (user_id, grant_id))
-            return cursor.fetchone() is not None
-    finally:
-        connection.close()
-
-
-def get_user_favorites(user_id):
-    """Get user's favorite grants."""
-    connection = get_db()
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute("""
-                SELECT g.*, f.saved_at
-                FROM favorites f
-                JOIN grants g ON f.grant_id = g.id
-                WHERE f.user_id = %s
-                ORDER BY f.saved_at DESC
-            """, (user_id,))
-            return cursor.fetchall()
-    finally:
-        connection.close()

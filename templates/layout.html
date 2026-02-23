@@ -18,7 +18,7 @@
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
+            <div class="collapse navbar-collapse navbar-collapse-right" id="navbarNav">
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
                     <li class="nav-item">
                         <a class="nav-link nav-link-theme" href="{{ url_for('home') }}#services" data-section="services">Services</a>
@@ -35,10 +35,10 @@
                     </li>
                     {% endif %}
                 </ul>
-                <div class="d-flex gap-2 align-items-center">
+                <div class="d-flex gap-2 align-items-center navbar-actions">
                     {% if session.get('user_id') and current_user %}
                     <div class="dropdown">
-                        <button class="btn btn-outline-light btn-sm btn-nav-outline dropdown-toggle d-flex align-items-center" type="button" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <button class="btn btn-sm btn-nav-cta dropdown-toggle d-flex align-items-center" type="button" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-person-circle me-1"></i> Profile
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 profile-dropdown" aria-labelledby="profileDropdown">
@@ -64,7 +64,7 @@
                         </ul>
                     </div>
                     {% else %}
-                        <a class="btn btn-outline-light btn-sm btn-nav-outline" href="{{ url_for('signin') }}">Sign In</a>
+                        <a class="btn btn-sm btn-nav-cta" href="{{ url_for('signin') }}">Sign In</a>
                     {% endif %}
                 </div>
             </div>
