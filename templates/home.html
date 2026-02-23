@@ -68,8 +68,10 @@
     <!-- Plans Section -->
     <section id="plans" class="plans-section">
         <div class="container">
-            <h2 class="text-center fw-bold">Choose Your Plan</h2>
-            
+            <div class="title-banner section-title-banner text-center mb-5">
+                <h2 class="fw-bold mb-0">Choose Your Plan</h2>
+            </div>
+
             <!-- Primary Plans -->
             <div class="row g-4 mb-5">
                 <!-- Basic Plan -->
@@ -77,8 +79,8 @@
                     <div class="plan-card basic-plan">
                         <div class="free-trial-badge">Free Trial</div>
                         <div class="plan-header">
-                            <h4>Basic Plan</h4>
-                            <p class="plan-billing">Billed Yearly</p>
+                            <div class="plan-name-strip"><h4 class="mb-0">Basic Plan</h4></div>
+                            <p class="plan-billing text-black mb-0">Billed Yearly</p>
                         </div>
                         <div class="plan-price">
                             <span class="price-amount">C$0</span>
@@ -101,8 +103,8 @@
                     <div class="plan-card success-plan featured">
                         <div class="featured-badge">Most Popular</div>
                         <div class="plan-header">
-                            <h4>Success Plan</h4>
-                            <p class="plan-billing">Billed Yearly</p>
+                            <div class="plan-name-strip"><h4 class="mb-0">Success Plan</h4></div>
+                            <p class="plan-billing text-black mb-0">Billed Yearly</p>
                         </div>
                         <div class="plan-price">
                             <span class="price-amount">C$59</span>
@@ -126,8 +128,8 @@
                 <div class="col-md-6 col-lg-4">
                     <div class="plan-card premium-plan">
                         <div class="plan-header">
-                            <h4>Premium Plan</h4>
-                            <p class="plan-billing">Billed Yearly</p>
+                            <div class="plan-name-strip"><h4 class="mb-0">Premium Plan</h4></div>
+                            <p class="plan-billing text-black mb-0">Billed Yearly</p>
                         </div>
                         <div class="plan-price">
                             <span class="price-amount">C$99</span>
@@ -154,8 +156,8 @@
                 <div class="col-md-6">
                     <div class="plan-card additional-plan">
                         <div class="plan-header">
-                            <h4>Fractional Plan</h4>
-                            <p class="plan-pricing-text">Contact for Pricing</p>
+                            <div class="plan-name-strip"><h4 class="mb-0">Fractional Plan</h4></div>
+                            <p class="plan-pricing-text text-black mb-0">Contact for Pricing</p>
                         </div>
                         <ul class="plan-features">
                             <li>Hands-on grant support</li>
@@ -175,8 +177,8 @@
                 <div class="col-md-6">
                     <div class="plan-card additional-plan">
                         <div class="plan-header">
-                            <h4>Associate Plan</h4>
-                            <p class="plan-pricing-text">Contact for Pricing</p>
+                            <div class="plan-name-strip"><h4 class="mb-0">Associate Plan</h4></div>
+                            <p class="plan-pricing-text text-black mb-0">Contact for Pricing</p>
                         </div>
                         <ul class="plan-features">
                             <li>For associates, universities, accelerators</li>
@@ -257,14 +259,16 @@
     <!-- Resources Section -->
     <section id="resources" class="resources-section py-5 bg-light">
         <div class="container">
-            <h2 class="text-center fw-bold mb-5">Explore Our Resources</h2>
+            <div class="title-banner section-title-banner text-center mb-5">
+                <h2 class="fw-bold mb-0">Explore Our Resources</h2>
+            </div>
             <div class="row g-4">
                 <!-- R&D Resources -->
                 <div class="col-md-6 col-lg-4">
                     <div class="card h-100 resource-card resource-card-wrap shadow-sm">
                         <div class="card-body d-flex flex-column">
-                            <h4 class="card-title fw-bold mb-2">🧪 {{ resources.rd.name }}</h4>
-                            <p class="card-text text-muted flex-grow-1 mb-3 resource-card-muted">
+                            <div class="resource-name-strip"><h4 class="card-title fw-bold mb-0">🧪 {{ resources.rd.name }}</h4></div>
+                            <p class="card-text text-muted flex-grow-1 mb-3 resource-card-muted mt-2">
                                 {{ resources.rd.description }}
                             </p>
                             
@@ -290,8 +294,8 @@
                 <div class="col-md-6 col-lg-4">
                     <div class="card h-100 resource-card resource-card-wrap shadow-sm">
                         <div class="card-body d-flex flex-column">
-                            <h4 class="card-title fw-bold mb-2">📦 {{ resources.export.name }}</h4>
-                            <p class="card-text text-muted flex-grow-1 mb-3 resource-card-muted">
+                            <div class="resource-name-strip"><h4 class="card-title fw-bold mb-0">📦 {{ resources.export.name }}</h4></div>
+                            <p class="card-text text-muted flex-grow-1 mb-3 resource-card-muted mt-2">
                                 {{ resources.export.description }}
                             </p>
                             
@@ -317,8 +321,8 @@
                 <div class="col-md-6 col-lg-4">
                     <div class="card h-100 resource-card resource-card-wrap shadow-sm">
                         <div class="card-body d-flex flex-column">
-                            <h4 class="card-title fw-bold mb-2">💼 {{ resources.hiring.name }}</h4>
-                            <p class="card-text text-muted flex-grow-1 mb-3 resource-card-muted">
+                            <div class="resource-name-strip"><h4 class="card-title fw-bold mb-0">💼 {{ resources.hiring.name }}</h4></div>
+                            <p class="card-text text-muted flex-grow-1 mb-3 resource-card-muted mt-2">
                                 {{ resources.hiring.description }}
                             </p>
                             
@@ -347,8 +351,8 @@
                             <span class="badge bg-secondary">Coming Soon</span>
                         </div>
                         <div class="card-body d-flex flex-column">
-                            <h4 class="card-title fw-bold mb-2">📚 {{ resources.training.name }}</h4>
-                            <p class="card-text text-muted flex-grow-1 mb-3 resource-card-muted">
+                            <div class="resource-name-strip"><h4 class="card-title fw-bold mb-0">📚 {{ resources.training.name }}</h4></div>
+                            <p class="card-text text-muted flex-grow-1 mb-3 resource-card-muted mt-2">
                                 {{ resources.training.description }}
                             </p>
                             
@@ -377,8 +381,8 @@
                             <span class="badge bg-secondary">Coming Soon</span>
                         </div>
                         <div class="card-body d-flex flex-column">
-                            <h4 class="card-title fw-bold mb-2">📈 {{ resources.expansion.name }}</h4>
-                            <p class="card-text text-muted flex-grow-1 mb-3 resource-card-muted">
+                            <div class="resource-name-strip"><h4 class="card-title fw-bold mb-0">📈 {{ resources.expansion.name }}</h4></div>
+                            <p class="card-text text-muted flex-grow-1 mb-3 resource-card-muted mt-2">
                                 {{ resources.expansion.description }}
                             </p>
                             

@@ -3,11 +3,6 @@
  */
 (function() {
     function initDashboard() {
-        var container = document.querySelector('[data-grant-stats]');
-        var inProgressCount = container ? parseInt(container.getAttribute('data-in-progress') || '0', 10) : 0;
-        var el = document.getElementById('inProgressCount');
-        if (el) el.textContent = inProgressCount;
-
         document.querySelectorAll('.apply-grant').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 var grantId = this.dataset.grantId;
@@ -57,6 +52,16 @@
                 })
                 .then(function(r) { return r.json(); })
                 .catch(function(e) { console.error(e); });
+            });
+        });
+
+        // Switch tab when clicking Home overview cards
+        document.querySelectorAll('[data-tab-switch]').forEach(function(link) {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                var tabId = this.getAttribute('data-tab-switch');
+                var tabBtn = document.querySelector('[data-bs-target="#' + tabId + '"]');
+                if (tabBtn && typeof tabBtn.click === 'function') tabBtn.click();
             });
         });
 

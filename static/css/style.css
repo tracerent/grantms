@@ -50,6 +50,92 @@ body {
     flex: 1 0 auto;
 }
 
+/* =====================================================
+   CONTENT SEPARATION - site-wide (title vs text, sections, list items)
+   ===================================================== */
+
+/* More space between headings and content below */
+.layout-main h1 { margin-bottom: 1rem; }
+.layout-main h2 { margin-bottom: 0.9rem; }
+.layout-main h3 { margin-bottom: 0.75rem; }
+.layout-main h4 { margin-bottom: 0.65rem; }
+.layout-main h5 { margin-bottom: 0.55rem; }
+
+.layout-main h1 + p,
+.layout-main h2 + p,
+.layout-main h3 + p,
+.layout-main h4 + p,
+.layout-main h5 + p {
+    margin-top: 0.35rem;
+}
+
+/* Section divider line - add class .section-with-line to any section */
+.section-with-line {
+    border-bottom: 1px solid var(--grey-200);
+    padding-bottom: 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+.section-with-line:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+/* Title banner - highlights section/tile titles with distinct background and text color */
+.title-banner {
+    background: rgba(88, 100, 92, 0.1);
+    border: 1px solid rgba(22, 163, 74, 0.3);
+    border-radius: 8px;
+    padding: 0.65rem 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.title-banner .home-section-title,
+.title-banner h2,
+.title-banner h3,
+.title-banner h4,
+.title-banner h5 {
+    color: #14532d;
+    font-weight: 700;
+}
+
+.title-banner-count {
+    color: #166534;
+    font-weight: 500;
+}
+
+/* Section title banner (home page - Plans, Resources) */
+.section-title-banner {
+    padding: 0.85rem 1.25rem;
+}
+
+.section-title-banner h2 {
+    color: #14532d;
+}
+
+/* Dashboard home section tile title banner */
+.home-section-title-banner {
+    padding: 0.6rem 1rem;
+}
+
+.home-section-title-banner .home-section-title {
+    font-size: 1.1rem;
+}
+
+.list-group-separated .list-group-item {
+    border: 1px solid var(--grey-200) !important;
+    margin-bottom: 0.5rem;
+    border-radius: 6px;
+    padding: 1.25rem 1.5rem !important;
+    background: var(--white);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.list-group-separated .list-group-item:last-child {
+    margin-bottom: 0;
+}
+
 .layout-footer {
     flex-shrink: 0;
 }
@@ -272,6 +358,7 @@ body {
 .success-system {
     padding: 80px 0;
     background: white;
+    border-bottom: 1px solid var(--grey-200);
 }
 
 .success-system h2 {
@@ -378,6 +465,7 @@ body {
 .plans-section {
     padding: 80px 0;
     background: white;
+    border-bottom: 1px solid var(--grey-200);
 }
 
 .plans-section h2 {
@@ -443,20 +531,34 @@ body {
 .plan-header h4 {
     font-size: 1.5rem;
     font-weight: 700;
-    margin-bottom: 8px;
+    margin-bottom: 0;
     color: #1f2937;
 }
 
-.plan-billing {
+/* Very light green strip for plan name */
+.plan-name-strip {
+    background: rgba(88, 100, 92, 0.1);
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.plan-name-strip h4 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.plan-billing,
+.plan-pricing-text {
     font-size: 0.85rem;
-    color: #9ca3af;
+    color: #111827;
     margin: 0;
 }
 
-.plan-pricing-text {
-    font-size: 0.85rem;
-    color: #9ca3af;
-    margin: 0;
+.plan-billing.text-black,
+.plan-pricing-text.text-black {
+    color: #111827 !important;
 }
 
 .plan-price {
@@ -512,6 +614,7 @@ body {
 .resources-section {
     padding: 80px 0;
     background: #f9fafb;
+    border-bottom: 1px solid var(--grey-200);
 }
 
 .resources-section h2 {
@@ -529,9 +632,22 @@ body {
 }
 
 .resource-card .card-title {
-    color: black;
+    color: #1f2937;
     padding: 0;
-    margin: 0 0 15px 0;
+    margin: 0;
+}
+
+/* Very light green strip for resource card title */
+.resource-name-strip {
+    background: rgba(22, 163, 74, 0.1);
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0;
+}
+
+.resource-name-strip .card-title {
+    color: #1f2937;
+    margin: 0;
 }
 
 .resource-card:hover {
@@ -742,6 +858,96 @@ body {
     font-size: 0.95rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+}
+
+/* Home tab value banner - ~1 inch tall, center aligned */
+.home-value-banner {
+    min-height: 1in;
+    background: rgba(22, 163, 74, 0.12);
+    color: var(--grey-900);
+    border: 1px solid rgba(22, 163, 74, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0.5rem 1rem;
+}
+
+/* Home tab two sections - bordered; title/description/list each have consistent size across both columns */
+.home-section {
+    border: 1px solid var(--grey-200);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.home-section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.home-section-desc {
+    font-size: 0.9rem;
+    margin-bottom: 0.75rem;
+}
+
+.home-matches-list.list-group-separated .list-group-item,
+.home-portfolio-list.list-group-separated .list-group-item {
+    font-size: 0.95rem;
+    border: 1px solid var(--grey-200) !important;
+    margin-bottom: 0.5rem;
+    border-radius: 6px;
+    padding: 1.25rem 1.5rem !important;
+    background: var(--white);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.home-matches-list .list-group-item:last-child,
+.home-portfolio-list .list-group-item:last-child {
+    margin-bottom: 0;
+}
+
+.home-section .see-all-link {
+    font-size: 0.875rem;
+}
+
+.see-all-link {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.see-all-link:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+}
+
+/* Grant Portfolio status badges (pastel, green theme) */
+.portfolio-status {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+
+.portfolio-status-submitted {
+    background: #fef9c3;
+    color: #a16207;
+}
+
+.portfolio-status-approved {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.portfolio-status-in-progress {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.portfolio-status-new {
+    background: #fee2e2;
+    color: #b91c1c;
 }
 
 /* Grant Cards */

@@ -13,133 +13,138 @@
                         <h1 class="fw-bold mb-1">Welcome, {{ user.get('name') or user['username'] }}!</h1>
                         <p class="text-muted mb-0">{{ user['company_name'] or 'Complete your profile' }}</p>
                     </div>
-                    <div class="col-auto">
-                        <a href="#profileModal" class="btn btn-outline-primary" data-bs-toggle="modal">
-                            Edit Profile
-                        </a>
-                    </div>
                 </div>
             </div>
         </div>
 
         <div class="container">
-            <!-- Stats Row -->
-            <div class="row g-4 mb-4">
-                <div class="col-md-3">
-                    <div class="stat-card">
-                        <div class="stat-number">{{ user_grants|length }}</div>
-                        <div class="stat-label">Applications</div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="stat-card">
-                        <div class="stat-number">{{ favorites|length }}</div>
-                        <div class="stat-label">Saved Grants</div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="stat-card">
-                        <div class="stat-number" id="inProgressCount">0</div>
-                        <div class="stat-label">In Progress</div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="stat-card">
-                        <div class="stat-number" id="approvedCount">0</div>
-                        <div class="stat-label">Approved</div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Tabs Navigation -->
-            <ul class="nav nav-tabs mb-4" role="tablist">
+            <ul class="nav nav-tabs mb-4 flex-nowrap overflow-auto" role="tablist"> 
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="my-grants-tab" data-bs-toggle="tab" 
-                            data-bs-target="#my-grants" type="button" role="tab">
-                        My Applications
-                    </button>
+                    <button class="nav-link active" id="home-tab" data-bs-toggle="tab" 
+                            data-bs-target="#home" type="button" role="tab">Home</button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="favorites-tab" data-bs-toggle="tab" 
-                            data-bs-target="#favorites" type="button" role="tab">
-                        Saved Grants ({{ favorites|length }})
-                    </button>
+                    <button class="nav-link" id="list-building-tab" data-bs-toggle="tab" 
+                            data-bs-target="#list-building" type="button" role="tab">List Building</button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="all-grants-tab" data-bs-toggle="tab" 
-                            data-bs-target="#all-grants" type="button" role="tab">
-                        All Grants
-                    </button>
+                    <button class="nav-link" id="account-tab" data-bs-toggle="tab" 
+                            data-bs-target="#account" type="button" role="tab">Account</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="saved-grants-tab" data-bs-toggle="tab" 
+                            data-bs-target="#saved-grants" type="button" role="tab">Saved Grants ({{ favorites|length }})</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="store-contacts-tab" data-bs-toggle="tab" 
+                            data-bs-target="#store-contacts" type="button" role="tab">Store Your Contacts</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="add-grants-tab" data-bs-toggle="tab" 
+                            data-bs-target="#add-grants" type="button" role="tab">Add Grants</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="application-tab" data-bs-toggle="tab" 
+                            data-bs-target="#application" type="button" role="tab">Application</button>
                 </li>
             </ul>
 
             <!-- Tab Content -->
             <div class="tab-content">
-                <!-- My Applications Tab -->
-                <div class="tab-pane fade show active" id="my-grants" role="tabpanel">
-                    {% if user_grants %}
-                        <div class="row g-4">
-                            {% for grant in user_grants %}
-                                <div class="col-md-6 col-lg-4">
-                                    <div class="grant-card">
-                                        <div class="grant-header">
-                                            <h5 class="grant-title">{{ grant['title'] }}</h5>
-                                            <span class="status-badge status-{{ grant['status']|lower|replace(' ', '-') }}">
-                                                {{ grant['status'] }}
-                                            </span>
-                                        </div>
-                                        <p class="text-muted small">{{ grant['agency'] }}</p>
-                                        <p class="grant-description">{{ grant['description'][:100] }}...</p>
-                                        
-                                        <div class="grant-details mb-3">
-                                            <div class="detail-item">
-                                                <span class="label">Funding:</span>
-                                                <span class="value">${{ "{:,.0f}".format(grant['funding_amount']) }}</span>
-                                            </div>
-                                            <div class="detail-item">
-                                                <span class="label">Deadline:</span>
-                                                <span class="value">{{ grant['deadline'] }}</span>
-                                            </div>
-                                            <div class="detail-item">
-                                                <span class="label">Applied:</span>
-                                                <span class="value">{{ grant['applied_date'][:10] }}</span>
-                                            </div>
-                                        </div>
-
-                                        <!-- Update Status Dropdown -->
-                                        <div class="mb-3">
-                                            <select class="form-select form-select-sm status-update" 
-                                                    data-grant-id="{{ grant['id'] }}">
-                                                <option value="Applied" {% if grant['status'] == 'Applied' %}selected{% endif %}>Applied</option>
-                                                <option value="In Progress" {% if grant['status'] == 'In Progress' %}selected{% endif %}>In Progress</option>
-                                                <option value="Awaiting Review" {% if grant['status'] == 'Awaiting Review' %}selected{% endif %}>Awaiting Review</option>
-                                                <option value="Approved" {% if grant['status'] == 'Approved' %}selected{% endif %}>Approved</option>
-                                                <option value="Rejected" {% if grant['status'] == 'Rejected' %}selected{% endif %}>Rejected</option>
-                                            </select>
-                                        </div>
-
-                                        <div class="d-flex gap-2">
-                                            <a href="{{ grant['url'] }}" target="_blank" class="btn btn-sm btn-primary flex-grow-1">
-                                                View Grant
-                                            </a>
-                                            <button class="btn btn-sm btn-outline-secondary remove-grant" data-grant-id="{{ grant['id'] }}">
-                                                Remove
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            {% endfor %}
-                        </div>
-                    {% else %}
-                        <div class="alert alert-info">
-                            <h5>No applications yet</h5>
-                            <p>Start applying for grants! Go to "All Grants" tab to find opportunities.</p>
-                        </div>
+                <!-- Home Tab -->
+                <div class="tab-pane fade show active" id="home" role="tabpanel">
+                    {% set default_matches = [
+                        {'title': 'Community Development Block Grant', 'funding_amount': 75000},
+                        {'title': 'Small Business Innovation Research', 'funding_amount': 150000},
+                        {'title': 'Rural Energy for America Program', 'funding_amount': 500000},
+                        {'title': 'Federal Pell Grant Program', 'funding_amount': 6895},
+                        {'title': 'Workforce Innovation and Opportunity Act', 'funding_amount': 250000}
+                    ] %}
+                    {% set default_portfolio = [
+                        {'title': 'Community Development Block Grant', 'status': 'In Progress'},
+                        {'title': 'Small Business Innovation Research', 'status': 'Submitted'},
+                        {'title': 'Rural Energy for America Program', 'status': 'New'},
+                        {'title': 'Federal Pell Grant Program', 'status': 'Approved'},
+                        {'title': 'Workforce Innovation and Opportunity Act', 'status': 'Submitted'}
+                    ] %}
+                    {% set display_matches = all_grants if (all_grants and all_grants|length > 0) else default_matches %}
+                    {% set display_portfolio = user_grants if (user_grants and user_grants|length > 0) else default_portfolio %}
+                    {% set ns = namespace(total=0) %}
+                    {% if user_grants and user_grants|length > 0 %}
+                        {% for g in user_grants %}
+                            {% set ns.total = ns.total + g.funding_amount|float %}
+                        {% endfor %}
                     {% endif %}
+                    <div class="home-value-banner mb-3 rounded">
+                        <strong>VALUE OF ACTIVE GRANTS:</strong> ${{ "{:,.0f}".format(ns.total) }}
+                    </div>
+                    <div class="row g-4">
+                        <div class="col-lg-6 home-section">
+                            <div class="title-banner home-section-title-banner">
+                                <h5 class="home-section-title mb-0">Your Matches <span class="title-banner-count">[{{ display_matches|length }}]</span></h5>
+                            </div>
+                            <p class="home-section-desc text-muted mb-3">Using these filtered grants you can build a list. Adjust filters at any time to generate new opportunities at any time.</p>
+                            <ul class="list-group list-group-flush home-matches-list list-group-separated">
+                                {% for grant in display_matches[:5] %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span class="text-truncate flex-grow-1 me-2" title="{{ grant['title'] }}">{{ grant['title'] }}</span>
+                                    <span class="text-muted">${{ "{:,.0f}".format(grant['funding_amount']) }}</span>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            <a href="#" class="btn btn-link btn-sm p-0 mt-2 see-all-link" data-tab-switch="list-building">See all</a>
+                        </div>
+                        <div class="col-lg-6 home-section">
+                            <div class="title-banner home-section-title-banner">
+                                <h5 class="home-section-title mb-0">Grant Portfolio <span class="title-banner-count">[{{ display_portfolio|length }}]</span></h5>
+                            </div>
+                            <p class="home-section-desc text-muted mb-3">Grants that you have selected for yourself.</p>
+                            <ul class="list-group list-group-flush home-portfolio-list list-group-separated">
+                                {% for grant in display_portfolio[:5] %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span class="text-truncate flex-grow-1 me-2" title="{{ grant['title'] }}">{{ grant['title'] }}</span>
+                                    {% if grant['status'] == 'Approved' %}
+                                    <span class="portfolio-status portfolio-status-approved">Approved</span>
+                                    {% elif grant['status'] == 'In Progress' %}
+                                    <span class="portfolio-status portfolio-status-in-progress">In Progress</span>
+                                    {% elif grant['status'] in ('Applied', 'Awaiting Review', 'Rejected', 'Submitted') %}
+                                    <span class="portfolio-status portfolio-status-submitted">Submitted</span>
+                                    {% else %}
+                                    <span class="portfolio-status portfolio-status-new">New</span>
+                                    {% endif %}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            <a href="#" class="btn btn-link btn-sm p-0 mt-2 see-all-link" data-tab-switch="application">See all</a>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Favorites Tab -->
-                <div class="tab-pane fade" id="favorites" role="tabpanel">
+                <!-- List Building Tab -->
+                <div class="tab-pane fade" id="list-building" role="tabpanel">
+                    <h4 class="mb-3">List Building</h4>
+                    <p class="text-muted">Build and manage your grant lists here. This section can be customized with filters and saved lists.</p>
+                    <div class="alert alert-light border">
+                        <p class="mb-0">List building features coming soon. Use <strong>Add Grants</strong> to browse grants and <strong>Saved Grants</strong> to keep favorites.</p>
+                    </div>
+                </div>
+
+                <!-- Account Tab -->
+                <div class="tab-pane fade" id="account" role="tabpanel">
+                    <h4 class="mb-3">Account</h4>
+                    <div class="card">
+                        <div class="card-body">
+                            <p class="text-muted mb-2"><strong>Name:</strong> {{ user.get('name') or user['username'] }}</p>
+                            <p class="text-muted mb-2"><strong>Company:</strong> {{ user['company_name'] or '—' }}</p>
+                            <p class="text-muted mb-3"><strong>Description:</strong> {{ user['company_description'] or '—' }}</p>
+                            <a href="#profileModal" class="btn btn-primary" data-bs-toggle="modal">Edit Profile</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Saved Grants Tab -->
+                <div class="tab-pane fade" id="saved-grants" role="tabpanel">
                     {% if favorites %}
                         <div class="row g-4">
                             {% for grant in favorites %}
@@ -183,8 +188,8 @@
                     {% endif %}
                 </div>
 
-                <!-- All Grants Tab -->
-                <div class="tab-pane fade" id="all-grants" role="tabpanel">
+                <!-- Add Grants Tab -->
+                <div class="tab-pane fade" id="add-grants" role="tabpanel">
                     <div class="mb-3">
                         <input type="text" class="form-control" id="grantSearch" placeholder="Search grants by title or description...">
                     </div>
@@ -194,8 +199,8 @@
                                 <div class="grant-card">
                                     <div class="grant-header">
                                         <h5 class="grant-title">{{ grant['title'] }}</h5>
-                                        {% set is_favorite = grant['id'] in [f['id'] for f in favorites] %}
-                                        {% set is_applied = grant['id'] in [g['id'] for g in user_grants] %}
+                                        {% set is_favorite = grant['id'] in favorites|map(attribute='id')|list %}
+                                        {% set is_applied = grant['id'] in user_grants|map(attribute='id')|list %}
                                     </div>
                                     <p class="text-muted small">{{ grant['agency'] }}</p>
                                     <p class="grant-description">{{ grant['description'][:100] }}...</p>
@@ -232,6 +237,68 @@
                             </div>
                         {% endfor %}
                     </div>
+                </div>
+
+                <!-- Application Tab (My Applications) -->
+                <div class="tab-pane fade" id="application" role="tabpanel">
+                    {% if user_grants %}
+                        <div class="row g-4">
+                            {% for grant in user_grants %}
+                                <div class="col-md-6 col-lg-4">
+                                    <div class="grant-card">
+                                        <div class="grant-header">
+                                            <h5 class="grant-title">{{ grant['title'] }}</h5>
+                                            <span class="status-badge status-{{ grant['status']|lower|replace(' ', '-') }}">
+                                                {{ grant['status'] }}
+                                            </span>
+                                        </div>
+                                        <p class="text-muted small">{{ grant['agency'] }}</p>
+                                        <p class="grant-description">{{ grant['description'][:100] }}...</p>
+                                        
+                                        <div class="grant-details mb-3">
+                                            <div class="detail-item">
+                                                <span class="label">Funding:</span>
+                                                <span class="value">${{ "{:,.0f}".format(grant['funding_amount']) }}</span>
+                                            </div>
+                                            <div class="detail-item">
+                                                <span class="label">Deadline:</span>
+                                                <span class="value">{{ grant['deadline'] }}</span>
+                                            </div>
+                                            <div class="detail-item">
+                                                <span class="label">Applied:</span>
+                                                <span class="value">{{ grant['applied_date'][:10] }}</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <select class="form-select form-select-sm status-update" 
+                                                    data-grant-id="{{ grant['id'] }}">
+                                                <option value="Applied" {% if grant['status'] == 'Applied' %}selected{% endif %}>Applied</option>
+                                                <option value="In Progress" {% if grant['status'] == 'In Progress' %}selected{% endif %}>In Progress</option>
+                                                <option value="Awaiting Review" {% if grant['status'] == 'Awaiting Review' %}selected{% endif %}>Awaiting Review</option>
+                                                <option value="Approved" {% if grant['status'] == 'Approved' %}selected{% endif %}>Approved</option>
+                                                <option value="Rejected" {% if grant['status'] == 'Rejected' %}selected{% endif %}>Rejected</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="d-flex gap-2">
+                                            <a href="{{ grant['url'] }}" target="_blank" class="btn btn-sm btn-primary flex-grow-1">
+                                                View Grant
+                                            </a>
+                                            <button class="btn btn-sm btn-outline-secondary remove-grant" data-grant-id="{{ grant['id'] }}">
+                                                Remove
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <h5>No applications yet</h5>
+                            <p>Start applying for grants! Go to "Add Grants" tab to find opportunities.</p>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
