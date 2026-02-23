@@ -43,6 +43,12 @@
                             Sign In with Email
                         </button>
                     </form>
+                    <br>
+                    <div class="text-center">
+                        <p class="text-muted">
+                            <a href="{{ url_for('forgot_password') }}" class="text-decoration-none">Forgot your password?</a>
+                        </p>
+                    </div>
 
                     <div class="text-center my-3">
                         <span class="text-muted small">— Or sign in with —</span>
@@ -63,12 +69,6 @@
                         </div>
                     </form>
                     <script src="{{ url_for('static', filename='js/signin.js') }}"></script>
-                    <br>
-                    <div class="text-center">
-                        <p class="text-muted">
-                            <a href="{{ url_for('forgot_password') }}" class="text-decoration-none">Forgot your password?</a>
-                        </p>
-                    </div>
 
                     <div class="text-center mt-4 pt-3 border-top">
                         <p class="text-muted">Don't have an account? 
