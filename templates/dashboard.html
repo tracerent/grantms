@@ -2,6 +2,10 @@
 
 {% block title %}Dashboard - Grant Roadmap{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+{% endblock %}
+
 {% block content %}
 <div class="dashboard-page" data-grant-stats data-in-progress="{{ user_grants|length if user_grants else 0 }}">
     <div class="container-fluid">
@@ -10,13 +14,38 @@
             <div class="container">
                 <div class="row align-items-center justify-content-between">
                     <div class="col">
-                        <h1 class="fw-bold mb-1">Welcome, {{ (user and (user.get('name') or user.get('username'))) or 'User' }}!</h1>
+                        <h1 class="fw-bold mb-1">Welcome, {{ user_display_name or user.get('email') or 'User' }}!</h1>
                         <p class="text-muted mb-0">{{ (user and user.get('company_name')) or 'Complete your profile' }}</p>
                     </div>
                     <div class="col-auto">
-                        <a href="{{ url_for('contact') }}" class="btn btn-gradient-yellow">Hire a Grant Writer</a>
+                        <a href="{{ url_for('main.contact') }}" class="btn btn-gradient-yellow">Hire a Grant Writer</a>
                     </div>
                 </div>
+                {% if subscription_banner.banner_type == 'trial_ended' %}
+                <div class="alert alert-warning alert-dismissible fade show mt-3 mb-0" role="alert">
+                    Free trial ended. <a href="{{ url_for('dashboard.dashboard') }}#subscription-upgrade-plan" class="alert-link">Upgrade plan</a> to continue.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% elif subscription_banner.banner_type == 'trial' and subscription_banner.days_left is not none %}
+                <div class="alert alert-info alert-dismissible fade show mt-3 mb-0" role="alert">
+                    {{ subscription_banner.days_left }} day{{ 's' if subscription_banner.days_left != 1 else '' }} left in your free trial. <a href="{{ url_for('dashboard.dashboard') }}#subscription-upgrade-plan" class="alert-link">Upgrade plan</a>.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% elif subscription_banner.banner_type == 'expiring_soon' and subscription_banner.days_left is not none %}
+                <div class="alert alert-warning alert-dismissible fade show mt-3 mb-0" role="alert">
+                    {% if has_default_payment_method %}
+                    Subscription will be renewed in {{ subscription_banner.days_left }} day{{ 's' if subscription_banner.days_left != 1 else '' }}.
+                    {% else %}
+                    Plan expiring in {{ subscription_banner.days_left }} day{{ 's' if subscription_banner.days_left != 1 else '' }}. <a href="{{ url_for('dashboard.dashboard') }}#subscription-upgrade-plan" class="alert-link">Upgrade plan</a>.
+                    {% endif %}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% elif subscription_banner.banner_type == 'expired' %}
+                <div class="alert alert-danger alert-dismissible fade show mt-3 mb-0" role="alert">
+                    Plan expired. <a href="{{ url_for('dashboard.dashboard') }}#subscription-upgrade-plan" class="alert-link">Upgrade plan</a>.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endif %}
             </div>
         </div>
 
@@ -24,31 +53,39 @@
             <!-- Tabs Navigation -->
             <ul class="nav nav-tabs mb-4" role="tablist"> 
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="home-tab" data-bs-toggle="tab" 
+                    <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-dashboard-hash="home"
                             data-bs-target="#home" type="button" role="tab">Home</button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="list-building-tab" data-bs-toggle="tab" 
+                    <button class="nav-link" id="list-building-tab" data-bs-toggle="tab" data-dashboard-hash="list-building"
                             data-bs-target="#list-building" type="button" role="tab">List Building</button>
                 </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="account-tab" data-bs-toggle="tab" 
-                            data-bs-target="#account" type="button" role="tab">Account</button>
+                <li class="nav-item dropdown" role="presentation">
+                    <button class="nav-link dropdown-toggle" id="account-tab" data-bs-toggle="dropdown" 
+                            aria-expanded="false" type="button">Account</button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="account-tab">
+                        <li><a class="dropdown-item account-dropdown-item" href="#account-profile" data-account-view="profile" data-dashboard-hash="account-profile">Account Details</a></li>
+                        <li><a class="dropdown-item account-dropdown-item" href="#account-team" data-account-view="add-user" data-dashboard-hash="account-team">Manage Team Members</a></li>
+                        <li><a class="dropdown-item account-dropdown-item" href="#account-subscriptions" data-account-view="subscriptions" data-dashboard-hash="account-subscriptions">Subscriptions</a></li>
+                    </ul>
+                </li>
+                <li class="nav-item d-none" role="presentation">
+                    <button class="nav-link" id="account-tab-trigger" data-bs-toggle="tab" data-bs-target="#account" type="button" role="tab">Account</button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="saved-grants-tab" data-bs-toggle="tab" 
+                    <button class="nav-link" id="saved-grants-tab" data-bs-toggle="tab" data-dashboard-hash="saved-grants"
                             data-bs-target="#saved-grants" type="button" role="tab">Saved Grants ({{ favorites|length }})</button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="store-contacts-tab" data-bs-toggle="tab" 
+                    <button class="nav-link" id="store-contacts-tab" data-bs-toggle="tab" data-dashboard-hash="store-contacts"
                             data-bs-target="#store-contacts" type="button" role="tab">Store Your Contacts</button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="add-grants-tab" data-bs-toggle="tab" 
+                    <button class="nav-link" id="add-grants-tab" data-bs-toggle="tab" data-dashboard-hash="add-grants"
                             data-bs-target="#add-grants" type="button" role="tab">Add Grants</button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="application-tab" data-bs-toggle="tab" 
+                    <button class="nav-link" id="application-tab" data-bs-toggle="tab" data-dashboard-hash="application"
                             data-bs-target="#application" type="button" role="tab">Application</button>
                 </li>
             </ul>
@@ -222,12 +259,367 @@
 
                 <!-- Account Tab -->
                 <div class="tab-pane fade" id="account" role="tabpanel">
-                    <h4 class="mb-3">Account</h4>
-                    <div class="card">
-                        <div class="card-body">
-                            <p class="text-muted mb-2"><strong>Name:</strong> {{ user.get('name') or user['username'] }}</p>
-                            <p class="text-muted mb-3"><strong>Company:</strong> {{ user['company_name'] or '—' }}</p>
-                            <a href="#profileModal" class="btn btn-primary" data-bs-toggle="modal">Edit Profile</a>
+                    <!-- Your Profile view (default) -->
+                    <div class="account-subview account-view-profile" id="account-view-profile">
+                        <h4 class="mb-4 fw-bold">Manage Account</h4>
+
+                        <!-- Personal Information -->
+                        <div class="home-section account-section mb-4">
+                            <div class="title-banner home-section-title-banner d-flex justify-content-between align-items-center">
+                                <h5 class="home-section-title mb-0">Personal Information</h5>
+                                <button type="button" class="btn btn-link btn-sm p-0 border-0 account-edit-btn text-secondary" data-section="personal" title="Edit" aria-label="Edit personal information">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            </div>
+                            <div class="account-section-inner">
+                                <div class="account-view-mode" id="personal-view">
+                                    <div class="row g-3 mb-0">
+                                        <div class="col-md-6"><div class="account-detail-field"><span class="text-muted small d-block">First Name</span><p class="mb-0 account-val" data-field="first_name">{{ user.get('first_name') or '—' }}</p></div></div>
+                                        <div class="col-md-6"><div class="account-detail-field"><span class="text-muted small d-block">Last Name</span><p class="mb-0 account-val" data-field="last_name">{{ user.get('last_name') or '—' }}</p></div></div>
+                                        <div class="col-md-6"><div class="account-detail-field"><span class="text-muted small d-block">Email</span><p class="mb-0 account-val" data-field="email">{{ user.get('email') or '—' }}</p></div></div>
+                                        <div class="col-md-6"><div class="account-detail-field"><span class="text-muted small d-block">Job Title</span><p class="mb-0 account-val" data-field="job_title">{{ user.get('job_title') or '—' }}</p></div></div>
+                                    </div>
+                                </div>
+                                <div class="account-edit-mode d-none" id="personal-edit">
+                                    <form id="form-personal" class="account-form">
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <div class="account-edit-field">
+                                                    <label class="form-label small text-muted">First Name</label>
+                                                    <input type="text" class="form-control" name="first_name" value="{{ user.get('first_name') or '' }}" placeholder="First name">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="account-edit-field">
+                                                    <label class="form-label small text-muted">Last Name</label>
+                                                    <input type="text" class="form-control" name="last_name" value="{{ user.get('last_name') or '' }}" placeholder="Last name">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="account-edit-field">
+                                                    <label class="form-label small text-muted">Email</label>
+                                                    <input type="email" class="form-control" name="email" value="{{ user.get('email') or '' }}" placeholder="Email" required>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="account-edit-field">
+                                                    <label class="form-label small text-muted">Job Title</label>
+                                                    <input type="text" class="form-control" name="job_title" value="{{ user.get('job_title') or '' }}" placeholder="Job title">
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
+                                                <button type="submit" class="btn btn-gradient-yellow btn-sm">Save</button>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm ms-2 account-cancel-edit" data-section="personal">Cancel</button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Company Information -->
+                        <div class="home-section account-section mb-4">
+                            <div class="title-banner home-section-title-banner d-flex justify-content-between align-items-center">
+                                <h5 class="home-section-title mb-0">Company Information</h5>
+                                <button type="button" class="btn btn-link btn-sm p-0 border-0 account-edit-btn text-secondary" data-section="company" title="Edit" aria-label="Edit company information">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                            </div>
+                            <div class="account-section-inner">
+                                <div class="account-view-mode" id="company-view">
+                                    <div class="row g-3 mb-0">
+                                        <div class="col-12"><span class="account-subsection-title">Company Identification</span></div>
+                                        <div class="col-md-6"><div class="account-detail-field"><span class="text-muted small d-block">Legal Entity Name</span><p class="mb-0 account-val">{{ company.legal_entity_name or '—' if company else '—' }}</p></div></div>
+                                        <div class="col-md-6"><div class="account-detail-field"><span class="text-muted small d-block">Operating Name</span><p class="mb-0 account-val">{{ company.operating_name or '—' if company else '—' }}</p></div></div>
+                                        <div class="col-md-6"><div class="account-detail-field"><span class="text-muted small d-block">Company Name</span><p class="mb-0 account-val">{{ company.company_name or (user.get('company_name') or '—') if company else (user.get('company_name') or '—') }}</p></div></div>
+                                        <div class="col-12 mt-3"><span class="account-subsection-title">Registration numbers</span></div>
+                                        <div class="col-md-6"><div class="account-detail-field"><span class="text-muted small d-block">Provincial Corporate Access Number</span><p class="mb-0 account-val">{{ company.provincial_corporate_access_number or '—' if company else '—' }}</p></div></div>
+                                        <div class="col-md-6"><div class="account-detail-field"><span class="text-muted small d-block">Workers Compensation Number</span><p class="mb-0 account-val">{{ company.workers_compensation_number or '—' if company else '—' }}</p></div></div>
+                                        <div class="col-md-6"><div class="account-detail-field"><span class="text-muted small d-block">Business Number</span><p class="mb-0 account-val">{{ company.business_number or '—' if company else '—' }}</p></div></div>
+                                        <div class="col-12 mt-3"><span class="account-subsection-title">Contact</span></div>
+                                        <div class="col-md-6"><div class="account-detail-field"><span class="text-muted small d-block">Business Phone Number</span><p class="mb-0 account-val">{{ company.business_phone_number or '—' if company else '—' }}</p></div></div>
+                                        <div class="col-12 mt-3"><span class="account-subsection-title">Incorporation & history</span></div>
+                                        <div class="col-md-6"><div class="account-detail-field"><span class="text-muted small d-block">Date of Incorporation</span><p class="mb-0 account-val">{{ company.date_of_incorporation or '—' if company else '—' }}</p></div></div>
+                                        <div class="col-md-6"><div class="account-detail-field"><span class="text-muted small d-block">Years in Operation</span><p class="mb-0 account-val">{% if company and company.years_in_operation is not none %}{{ company.years_in_operation }}{% else %}—{% endif %}</p></div></div>
+                                        <div class="col-12 mt-3"><span class="account-subsection-title">Founder</span></div>
+                                        <div class="col-md-6"><div class="account-detail-field"><span class="text-muted small d-block">Founder Name</span><p class="mb-0 account-val">{{ company.founder_name or '—' if company else '—' }}</p></div></div>
+                                        <div class="col-md-6"><div class="account-detail-field"><span class="text-muted small d-block">Founder Title</span><p class="mb-0 account-val">{{ company.founder_title or '—' if company else '—' }}</p></div></div>
+                                        <div class="col-12 mt-3"><span class="account-subsection-title">Location & web</span></div>
+                                        <div class="col-12"><div class="account-detail-field"><span class="text-muted small d-block">Address</span><p class="mb-0 account-val">{{ company.address or '—' if company else '—' }}</p></div></div>
+                                        <div class="col-md-6"><div class="account-detail-field"><span class="text-muted small d-block">Postal Code</span><p class="mb-0 account-val">{{ company.postal_code or '—' if company else '—' }}</p></div></div>
+                                        <div class="col-md-6"><div class="account-detail-field"><span class="text-muted small d-block">Website</span><p class="mb-0 account-val">{{ company.website or '—' if company else '—' }}</p></div></div>
+                                    </div>
+                                </div>
+                                <div class="account-edit-mode d-none" id="company-edit">
+                                    <form id="form-company" class="account-form">
+                                        <div class="row g-3">
+                                            <div class="col-12"><span class="account-subsection-title">Company Identification</span></div>
+                                            <div class="col-md-6"><div class="account-edit-field"><label class="form-label small text-muted">Legal Entity Name</label><input type="text" class="form-control" name="legal_entity_name" value="{{ company.legal_entity_name or '' if company else '' }}"></div></div>
+                                            <div class="col-md-6"><div class="account-edit-field"><label class="form-label small text-muted">Operating Name</label><input type="text" class="form-control" name="operating_name" value="{{ company.operating_name or '' if company else '' }}"></div></div>
+                                            <div class="col-md-6"><div class="account-edit-field"><label class="form-label small text-muted">Company Name</label><input type="text" class="form-control" name="company_name" value="{{ company.company_name or (user.get('company_name') or '') if company else (user.get('company_name') or '') }}"></div></div>
+                                            <div class="col-12 mt-3"><span class="account-subsection-title">Registration numbers</span></div>
+                                            <div class="col-md-6"><div class="account-edit-field"><label class="form-label small text-muted">Provincial Corporate Access Number</label><input type="text" class="form-control" name="provincial_corporate_access_number" value="{{ company.provincial_corporate_access_number or '' if company else '' }}"></div></div>
+                                            <div class="col-md-6"><div class="account-edit-field"><label class="form-label small text-muted">Workers Compensation Number</label><input type="text" class="form-control" name="workers_compensation_number" value="{{ company.workers_compensation_number or '' if company else '' }}"></div></div>
+                                            <div class="col-md-6"><div class="account-edit-field"><label class="form-label small text-muted">Business Number</label><input type="text" class="form-control" name="business_number" value="{{ company.business_number or '' if company else '' }}"></div></div>
+                                            <div class="col-12 mt-3"><span class="account-subsection-title">Contact</span></div>
+                                            <div class="col-md-6"><div class="account-edit-field"><label class="form-label small text-muted">Business Phone Number</label><input type="text" class="form-control" name="business_phone_number" value="{{ company.business_phone_number or '' if company else '' }}"></div></div>
+                                            <div class="col-12 mt-3"><span class="account-subsection-title">Incorporation & history</span></div>
+                                            <div class="col-md-6"><div class="account-edit-field"><label class="form-label small text-muted">Date of Incorporation</label><input type="date" class="form-control" name="date_of_incorporation" value="{{ company.date_of_incorporation or '' if company else '' }}"></div></div>
+                                            <div class="col-md-6"><div class="account-edit-field"><label class="form-label small text-muted">Years in Operation</label><input type="number" class="form-control" name="years_in_operation" value="{{ company.years_in_operation or '' if company and company.years_in_operation is not none else '' }}" min="0"></div></div>
+                                            <div class="col-12 mt-3"><span class="account-subsection-title">Founder</span></div>
+                                            <div class="col-md-6"><div class="account-edit-field"><label class="form-label small text-muted">Founder Name</label><input type="text" class="form-control" name="founder_name" value="{{ company.founder_name or '' if company else '' }}"></div></div>
+                                            <div class="col-md-6"><div class="account-edit-field"><label class="form-label small text-muted">Founder Title</label><input type="text" class="form-control" name="founder_title" value="{{ company.founder_title or '' if company else '' }}"></div></div>
+                                            <div class="col-12 mt-3"><span class="account-subsection-title">Location & web</span></div>
+                                            <div class="col-12"><div class="account-edit-field"><label class="form-label small text-muted">Address</label><input type="text" class="form-control" name="address" value="{{ company.address or '' if company else '' }}"></div></div>
+                                            <div class="col-md-6"><div class="account-edit-field"><label class="form-label small text-muted">Postal Code</label><input type="text" class="form-control" name="postal_code" value="{{ company.postal_code or '' if company else '' }}"></div></div>
+                                            <div class="col-md-6"><div class="account-edit-field"><label class="form-label small text-muted">Website</label><input type="url" class="form-control" name="website" value="{{ company.website or '' if company else '' }}"></div></div>
+                                            <div class="col-12">
+                                                <button type="submit" class="btn btn-gradient-yellow btn-sm">Save</button>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm ms-2 account-cancel-edit" data-section="company">Cancel</button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Add User / Subscriptions placeholders (same sectional style) -->
+                    <div class="account-subview account-view-add-user d-none" id="account-view-add-user">
+                        <h4 class="mb-4 fw-bold">Manage Team Members</h4>
+                        <p class="text-muted mb-4">Based on your <strong>{{ plan_name }}</strong> plan, you can have up to <strong>{{ plan_max_members }}</strong> member(s).</p>
+                        <div class="row g-4">
+                            <div class="col-lg-5">
+                                <div class="home-section account-section h-100">
+                                    <div class="title-banner home-section-title-banner">
+                                        <h5 class="home-section-title mb-0">Team members</h5>
+                                    </div>
+                                    <div class="account-section-inner">
+                                        <ul class="list-unstyled mb-0" id="team-members-list">
+                                            {% for m in team_members %}
+                                            <li class="account-list-item d-flex justify-content-between align-items-center {% if m.get('is_active') != 1 %}opacity-75{% endif %}">
+                                                <div>
+                                                    <span class="fw-semibold">{{ m.get('first_name') or '—' }} {{ m.get('last_name') or '' }}</span>
+                                                    {% if m.get('is_active') != 1 %}<span class="text-muted small ms-1">(Inactive)</span>{% endif %}
+                                                    <br><span class="text-muted small">{{ m.get('email') or '—' }}</span>
+                                                </div>
+                                                <div>
+                                                    {% if m.get('id') != user.get('id') %}
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary team-toggle-active" data-user-id="{{ m.id }}" data-is-active="{{ 1 if m.get('is_active') == 1 else 0 }}">
+                                                        {% if m.get('is_active') == 1 %}Deactivate{% else %}Activate{% endif %}
+                                                    </button>
+                                                    {% endif %}
+                                                </div>
+                                            </li>
+                                            {% endfor %}
+                                            {% if not team_members %}
+                                            <li class="account-list-item text-muted">No team members added yet.</li>
+                                            {% endif %}
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-7">
+                                <div class="home-section account-section">
+                                    <div class="title-banner home-section-title-banner">
+                                        <h5 class="home-section-title mb-0">Add new member</h5>
+                                    </div>
+                                    <div class="account-section-inner">
+                                        <form id="form-add-member" class="account-form">
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <label class="form-label small text-muted">First Name</label>
+                                                    <input type="text" class="form-control" name="first_name" placeholder="First name" {% if team_members|length >= plan_max_members %}disabled{% else %}required{% endif %}>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label small text-muted">Last Name</label>
+                                                    <input type="text" class="form-control" name="last_name" placeholder="Last name" {% if team_members|length >= plan_max_members %}disabled{% endif %}>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label small text-muted">Email</label>
+                                                    <input type="email" class="form-control" name="email" placeholder="Email" {% if team_members|length >= plan_max_members %}disabled{% else %}required{% endif %}>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label small text-muted">Job Title</label>
+                                                    <input type="text" class="form-control" name="job_title" placeholder="Job title" {% if team_members|length >= plan_max_members %}disabled{% endif %}>
+                                                </div>
+                                                <div class="col-12">
+                                                    {% if team_members|length >= plan_max_members %}
+                                                    <button type="button" class="btn btn-gradient-yellow btn-sm" id="btn-add-member" disabled>Add member</button>
+                                                    <span class="text-muted small ms-2">Member limit reached.</span>
+                                                    {% else %}
+                                                    <button type="submit" class="btn btn-gradient-yellow btn-sm" id="btn-add-member">Add member</button>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="account-subview account-view-subscriptions d-none" id="account-view-subscriptions">
+                        <h4 class="account-page-title mb-4">Manage Subscription</h4>
+
+                        <!-- Current Plan -->
+                        <div class="home-section account-section mb-4">
+                            <div class="title-banner home-section-title-banner d-flex justify-content-between align-items-center">
+                                <h5 class="home-section-title mb-0">Current Plan</h5>
+                                <a href="{{ url_for('main.plans') }}" class="btn btn-gradient-yellow btn-sm">View all plans</a>
+                            </div>
+                            <div class="account-section-inner">
+                                <div class="subscription-plan-hero mb-4">
+                                    <div class="subscription-plan-badge">{{ current_plan_display.plan_display_name }}</div>
+                                    <div class="subscription-plan-price">
+                                        <span class="subscription-plan-amount">C${{ "{:,.0f}".format(current_plan_display.annual_cost) }}</span>
+                                        <span class="subscription-plan-period">/ year</span>
+                                    </div>
+                                    <p class="subscription-plan-billing-note">C${{ "{:,.0f}".format(current_plan_display.monthly_cost) }}/month, billed annually</p>
+                                </div>
+                                <div class="plan-stats-row row g-3 mb-4">
+                                    <div class="col-sm-6 col-md-4">
+                                        <div class="plan-stat-card plan-stat-days">
+                                            <div class="plan-stat-icon"><i class="bi bi-calendar3"></i></div>
+                                            <div class="plan-stat-value">{{ current_plan_display.days_remaining if current_plan_display.days_remaining is not none else '—' }}</div>
+                                            <div class="plan-stat-label">Days remaining</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6 col-md-4">
+                                        <div class="plan-stat-card plan-stat-members">
+                                            <div class="plan-stat-icon"><i class="bi bi-people"></i></div>
+                                            <div class="plan-stat-value">{{ team_members|length }} <span class="plan-stat-sep">/</span> {{ current_plan_display.member_count }}</div>
+                                            <div class="plan-stat-label">Team members</div>
+                                        </div>
+                                    </div>
+                                    {% if has_default_payment_method %}
+                                    <div id="next-billing-date-wrap" class="col-sm-6 col-md-4">
+                                    {% else %}
+                                    <div id="next-billing-date-wrap" class="col-sm-6 col-md-4 d-none">
+                                    {% endif %}
+                                        <div class="plan-stat-card plan-stat-billing">
+                                            <div class="plan-stat-icon"><i class="bi bi-credit-card"></i></div>
+                                            <div class="plan-stat-value plan-stat-value-sm">{{ current_plan_display.next_billing_date or '—' }}</div>
+                                            <div class="plan-stat-label">Next billing date</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <a href="{{ url_for('main.home') }}#plans" class="btn btn-gradient-yellow btn-sm">View full feature list</a>
+                                    <a href="#subscription-upgrade-plan" class="btn btn-gradient-yellow btn-sm">Upgrade Plan</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Billing History -->
+                        <div class="home-section account-section mb-4">
+                            <div class="title-banner home-section-title-banner">
+                                <h5 class="home-section-title mb-0">Billing History</h5>
+                            </div>
+                            <div class="account-section-inner">
+                                {% if billing_history %}
+                                <div class="row g-3 billing-history-grid">
+                                    {% for item in billing_history %}
+                                    <div class="col-6 col-md-4 col-lg-3">
+                                        <div class="invoice-card">
+                                            <div class="invoice-card-icon"><i class="bi bi-receipt"></i></div>
+                                            <div class="invoice-card-plan">{{ item.plan_name or 'Plan' }}</div>
+                                            <div class="invoice-card-date text-muted small">{{ item.date or '' }}</div>
+                                            <div class="invoice-card-amount subscription-list-amount">{{ item.amount or '' }}</div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <div class="subscription-empty-state">
+                                    <i class="bi bi-receipt subscription-empty-icon"></i>
+                                    <p class="subscription-empty-text mb-0">No invoices found.</p>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Payment Methods -->
+                        <div class="home-section account-section mb-4">
+                            <div class="title-banner home-section-title-banner d-flex justify-content-between align-items-center">
+                                <h5 class="home-section-title mb-0">Payment Methods</h5>
+                                <button type="button" class="btn btn-gradient-yellow btn-sm" data-bs-toggle="modal" data-bs-target="#addPaymentMethodModal" data-payment-context="add_method">Add payment method</button>
+                            </div>
+                            <div class="account-section-inner" id="payment-methods-section-inner">
+                                {% if payment_methods %}
+                                <div class="row g-3 payment-methods-grid">
+                                    {% for pm in payment_methods %}
+                                    <div class="col-6 col-md-4 col-lg-3" data-payment-method-id="{{ pm.payment_method_id }}">
+                                        <div class="payment-method-card">
+                                            <label class="payment-method-default-label" title="Set as default payment method">
+                                                <input type="checkbox" class="payment-method-set-default" data-method-id="{{ pm.payment_method_id }}" {% if pm.is_default %}checked{% endif %} aria-label="Default payment method">
+                                                <span class="payment-method-default-text">Set default</span>
+                                            </label>
+                                            <div class="payment-method-card-row">
+                                                <span class="payment-method-card-last4">•••• {{ pm.last4 or '****' }}</span>
+                                                <span class="payment-method-card-expiry">{% if pm.expiry_month and pm.expiry_year %}{{ "%02d"|format(pm.expiry_month) }}/{{ pm.expiry_year }}{% else %}—{% endif %}</span>
+                                            </div>
+                                            <div class="payment-method-card-row">
+                                                <span class="payment-method-card-brand">
+                                                    {% set brand_lower = (pm.brand or '')|lower %}
+                                                    {% if brand_lower == 'visa' %}<i class="fab fa-cc-visa payment-card-brand-icon" aria-hidden="true"></i>
+                                                    {% elif brand_lower == 'mastercard' %}<i class="fab fa-cc-mastercard payment-card-brand-icon" aria-hidden="true"></i>
+                                                    {% elif brand_lower in ('amex', 'american express') %}<i class="fab fa-cc-amex payment-card-brand-icon" aria-hidden="true"></i>
+                                                    {% elif brand_lower == 'discover' %}<i class="fab fa-cc-discover payment-card-brand-icon" aria-hidden="true"></i>
+                                                    {% elif brand_lower == 'diners club' %}<i class="fab fa-cc-diners-club payment-card-brand-icon" aria-hidden="true"></i>
+                                                    {% elif brand_lower == 'jcb' %}<i class="fab fa-cc-jcb payment-card-brand-icon" aria-hidden="true"></i>
+                                                    {% else %}<i class="bi bi-credit-card payment-card-brand-icon" aria-hidden="true"></i>
+                                                    {% endif %}
+                                                    <span class="payment-method-card-brand-name">{{ pm.brand or 'Card' }}</span>
+                                                </span>
+                                                <button type="button" class="btn btn-gradient-yellow btn-sm subscription-remove-method" data-method-id="{{ pm.payment_method_id }}">Remove</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <div class="subscription-empty-state">
+                                    <i class="bi bi-credit-card subscription-empty-icon"></i>
+                                    <p class="subscription-empty-text mb-0">No payment methods added.</p>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Upgrade plan -->
+                        <div class="home-section account-section mb-4" id="subscription-upgrade-plan">
+                            <div class="title-banner home-section-title-banner">
+                                <h5 class="home-section-title mb-0">Upgrade Plan</h5>
+                            </div>
+                            <div class="account-section-inner">
+                                <form id="form-subscription-upgrade" action="{{ url_for('api_account_subscription_upgrade') }}" method="post" class="d-none">
+                                    <input type="hidden" name="subscription_id" id="input-subscription-id" value="">
+                                </form>
+                                {% if current_plan_display.subscription_id >= 2 %}
+                                <p class="subscription-section-desc mb-4">You already have the best plan.</p>
+                                <div class="d-flex flex-wrap gap-3 align-items-center">
+                                    <a href="{{ url_for('main.contact', type='quote') }}" class="btn btn-gradient-yellow btn-sm">Request Custom Plan</a>
+                                </div>
+                                {% elif current_plan_display.subscription_id == 1 %}
+                                <p class="subscription-section-desc mb-4">Switch to a higher plan for more features.</p>
+                                <div class="d-flex flex-wrap gap-3 align-items-center">
+                                    <button type="button" class="btn btn-gradient-yellow btn-sm btn-switch-plan" data-plan-id="2" data-plan-name="Premium Plan">Switch to Premium Plan</button>
+                                    <a href="{{ url_for('main.contact', type='quote') }}" class="btn btn-gradient-yellow btn-sm">Request Custom Plan</a>
+                                </div>
+                                {% elif current_plan_display.subscription_id == 0 %}
+                                <p class="subscription-section-desc mb-4">Upgrade from Basic to get more team members and features.</p>
+                                <div class="d-flex flex-wrap gap-3 align-items-center">
+                                    <button type="button" class="btn btn-gradient-yellow btn-sm btn-switch-plan" data-plan-id="1" data-plan-name="Success Plan">Switch to Success Plan</button>
+                                    <button type="button" class="btn btn-gradient-yellow btn-sm btn-switch-plan" data-plan-id="2" data-plan-name="Premium Plan">Switch to Premium Plan</button>
+                                    <a href="{{ url_for('main.contact', type='quote') }}" class="btn btn-gradient-yellow btn-sm">Request Custom Plan</a>
+                                </div>
+                                {% else %}
+                                <p class="subscription-section-desc mb-4">You are on a custom plan. Contact us to change.</p>
+                                <div class="d-flex flex-wrap gap-3 align-items-center">
+                                    <a href="{{ url_for('main.contact', type='quote') }}" class="btn btn-gradient-yellow btn-sm">Request Custom Plan</a>
+                                </div>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -269,7 +661,7 @@
                     {% else %}
                         <div class="alert alert-info">
                             <h5>No saved grants</h5>
-                            <p>Use List Building to star grants and add them to your portfolio.</p>
+                            <p>Use List Building to add grants to your portfolio.</p>
                         </div>
                     {% endif %}
                 </div>
@@ -412,7 +804,7 @@
                     <h5 class="modal-title">Edit Profile</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form method="POST" action="{{ url_for('update_profile') }}">
+                <form method="POST" action="{{ url_for('account.update_profile') }}">
                     <div class="modal-body">
                         <div class="mb-3">
                             <label class="form-label">Company Name</label>
@@ -427,6 +819,95 @@
             </div>
         </div>
     </div>
+
+    <!-- Add payment method modal (used for "Add payment method" = just save card; or from Upgrade = process payment) -->
+    <div class="modal fade" id="addPaymentMethodModal" tabindex="-1" aria-labelledby="addPaymentMethodModalLabel" aria-hidden="true" data-payment-context="add_method">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addPaymentMethodModalLabel">Add payment details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="form-add-payment-method">
+                        <div class="mb-3">
+                            <label class="form-label">Payment type</label>
+                            <select class="form-select" name="payment_type" required>
+                                <option value="">Select type</option>
+                                <option value="card">Credit / Debit card</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Card number</label>
+                            <input type="text" class="form-control" name="card_number" placeholder="1234 5678 9012 3456" maxlength="19" pattern="[0-9\s]+" title="Enter card number">
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="form-label">Expiry (MM/YY)</label>
+                                <input type="text" class="form-control" name="expiry" placeholder="MM/YY" maxlength="5">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">CVC</label>
+                                <input type="text" class="form-control" name="cvc" placeholder="123" maxlength="4">
+                            </div>
+                        </div>
+                        <div class="form-check mt-3 d-none" id="payment-save-for-future-wrap">
+                            <input type="checkbox" class="form-check-input" id="payment-save-for-future" name="save_for_future">
+                            <label class="form-check-label small text-muted" for="payment-save-for-future">Save payment method for future</label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-gradient-yellow" id="btn-process-payment">Save card</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Remove payment method confirmation modal (styled like Add payment method) -->
+    <div class="modal fade" id="removePaymentMethodModal" tabindex="-1" aria-labelledby="removePaymentMethodModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="removePaymentMethodModalLabel">Remove payment method</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0" id="remove-payment-method-message">Are you sure you want to remove this payment method?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-gradient-yellow" id="btn-confirm-remove-payment-method">Remove</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Switch plan – payment choice modal (no payment method: add details; has payment: use existing or add new) -->
+    <div class="modal fade" id="switchPlanPaymentModal" tabindex="-1" aria-labelledby="switchPlanPaymentModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="switchPlanPaymentModalLabel">Payment for <span id="switch-plan-modal-plan-name"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="switch-plan-prompt-no-payment" class="d-none">
+                        <p class="mb-3">Add payment details to use for this payment.</p>
+                        <button type="button" class="btn btn-gradient-yellow" id="switch-plan-btn-add-details">Add payment details</button>
+                    </div>
+                    <div id="switch-plan-prompt-has-payment" class="d-none">
+                        <p class="mb-3">Use your existing payment method or add new details and use it?</p>
+                        <div class="d-flex flex-wrap gap-3">
+                            <button type="button" class="btn btn-gradient-yellow" id="switch-plan-btn-use-existing">Use existing</button>
+                            <button type="button" class="btn btn-gradient-yellow" id="switch-plan-btn-add-new">Add new details</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -435,6 +916,7 @@ window.LB_PORTFOLIO_GRANT_IDS = {{ (portfolio_grant_ids or [])|tojson }};
 window.LB_PORTFOLIO_INFO = {{ (portfolio_grants_info or [])|tojson }};
 window.LB_SAVED_FILTERS = {{ (saved_filters or {})|tojson }};
 window.LB_FAVORITE_IDS = {{ (favorites or [])|map(attribute='id')|list|tojson }};
+window.SUBSCRIPTION_PAYMENT_METHODS = {{ (payment_methods or [])|tojson }};
 </script>
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 <script src="{{ url_for('static', filename='js/list-building.js') }}"></script>

@@ -12,7 +12,7 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-light sticky-top navbar-theme">
         <div class="container-fluid">
-            <a class="navbar-brand fw-bold navbar-brand-theme" href="{{ url_for('home') }}">
+            <a class="navbar-brand fw-bold navbar-brand-theme" href="{{ url_for('main.home') }}">
                 <img src="{{ url_for('static', filename='image/color_logo.png') }}" alt="The Grant Roadmap" class="navbar-logo">
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -21,17 +21,17 @@
             <div class="collapse navbar-collapse navbar-collapse-right" id="navbarNav">
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
                     <li class="nav-item">
-                        <a class="nav-link nav-link-theme" href="{{ url_for('home') }}#services" data-section="services">Services</a>
+                        <a class="nav-link nav-link-theme" href="{{ url_for('main.home') }}#grant-support" data-section="grant-support">Services</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link nav-link-theme" href="{{ url_for('home') }}#plans" data-section="plans">Plans</a>
+                        <a class="nav-link nav-link-theme" href="{{ url_for('main.home') }}#plans" data-section="plans">Plans</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link nav-link-theme" href="{{ url_for('home') }}#resources" data-section="resources">Resources</a>
+                        <a class="nav-link nav-link-theme" href="{{ url_for('main.home') }}#resources" data-section="resources">Resources</a>
                     </li>
                     {% if session.get('user_id') %}
                     <li class="nav-item">
-                        <a class="nav-link nav-link-theme" href="{{ url_for('dashboard') }}">Dashboard</a>
+                        <a class="nav-link nav-link-theme" href="{{ url_for('dashboard.dashboard') }}">Dashboard</a>
                     </li>
                     {% endif %}
                 </ul>
@@ -49,7 +49,7 @@
                             </li>
                             <li class="px-3 py-2">
                                 <span class="text-muted small d-block">Name</span>
-                                <span class="d-block">{{ current_user.name or current_user.username or '—' }}</span>
+                                <span class="d-block">{{ current_user.display_name or current_user.email or '—' }}</span>
                             </li>
                             <li class="px-3 py-2">
                                 <span class="text-muted small d-block">Company</span>
@@ -57,14 +57,14 @@
                             </li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
-                                <a class="dropdown-item text-danger d-flex align-items-center" href="{{ url_for('signout') }}">
+                                <a class="dropdown-item text-danger d-flex align-items-center" href="{{ url_for('auth.signout') }}">
                                     <i class="bi bi-box-arrow-right me-2"></i> Sign Out
                                 </a>
                             </li>
                         </ul>
                     </div>
                     {% else %}
-                        <a class="btn btn-sm btn-nav-cta" href="{{ url_for('signin') }}">Sign In</a>
+                        <a class="btn btn-sm btn-nav-cta" href="{{ url_for('auth.signin') }}">Sign In</a>
                     {% endif %}
                 </div>
             </div>

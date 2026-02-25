@@ -20,16 +20,21 @@
                                 <input type="text" class="form-control form-control-lg" id="company_name" placeholder="Your organization" required>
                             </div>
                             <div class="mb-2 signup-field-row">
-                                <label class="form-label" for="name">Your Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control form-control-lg" id="name" placeholder="Your name" required>
+                                <label class="form-label" for="first_name">First Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-lg" id="first_name" placeholder="First name" required>
+                            </div>
+                            <div class="mb-2 signup-field-row">
+                                <label class="form-label" for="last_name">Last Name</label>
+                                <input type="text" class="form-control form-control-lg" id="last_name" placeholder="Last name">
                             </div>
                         </div>
 
                         <!-- Right: Email, password, and sign up options -->
                         <div class="col-md-6">
-                            <form method="POST" action="{{ url_for('signup') }}" id="email-signup-form">
+                            <form method="POST" action="{{ url_for('auth.signup') }}" id="email-signup-form">
                                 <input type="hidden" name="company_name" id="email_company_name">
-                                <input type="hidden" name="name" id="email_name">
+                                <input type="hidden" name="first_name" id="email_first_name">
+                                <input type="hidden" name="last_name" id="email_last_name">
                                 <div class="mb-2">
                                     <label class="form-label" for="email">Email Address</label>
                                     <input type="text" class="form-control form-control-lg" id="email" name="email" placeholder="your@email.com" autocomplete="email">
@@ -111,13 +116,14 @@
                         document.getElementById('email-signup-form').addEventListener('submit', function(e) {
                             e.preventDefault();
                             var cn = document.getElementById('company_name').value.trim();
-                            var nm = document.getElementById('name').value.trim();
+                            var fn = document.getElementById('first_name').value.trim();
+                            var ln = document.getElementById('last_name').value.trim();
                             var email = document.getElementById('email').value.trim();
                             var pwd = passwordEl.value;
 
                             var missing = [];
                             if (!cn) missing.push('Company name');
-                            if (!nm) missing.push('Your name');
+                            if (!fn) missing.push('First name');
                             if (!email) missing.push('Email address');
                             if (!pwd) missing.push('Password');
 
@@ -135,7 +141,8 @@
                                 return;
                             }
                             document.getElementById('email_company_name').value = cn;
-                            document.getElementById('email_name').value = nm;
+                            document.getElementById('email_first_name').value = fn;
+                            document.getElementById('email_last_name').value = ln;
                             this.submit();
                         });
                     })();
@@ -143,7 +150,7 @@
                     <br>
                     <div class="text-center mt-1 pt-1 border-top">
                         <p class="text-muted">Already have an account? 
-                            <a href="{{ url_for('signin') }}" class="text-decoration-none fw-bold">Sign In</a>
+                            <a href="{{ url_for('auth.signin') }}" class="text-decoration-none fw-bold">Sign In</a>
                         </p>
                     </div>
 

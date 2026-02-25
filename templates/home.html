@@ -5,7 +5,7 @@
 {% block content %}
 <div class="home-page">
     <!-- Hero Section with Dynamic Text -->
-    <section id="services" class="hero-section py-5">
+    <section id="services" class="hero-section">
         <div class="container">
             <div class="hero-container">
                 <div class="hero-left">
@@ -57,10 +57,28 @@
                 <div class="success-text">
                     <h2>Our Success System</h2>
                     <p>We have curated an industry-first 7-step proprietary grant management system to enable businesses to access all the resources they need to find funding and receive the support required to grow strategically.</p>
-                    <a href="{{ url_for('signup') }}" class="btn btn-gradient-yellow btn-lg mt-3">
+                    <a href="{{ url_for('auth.signup') }}" class="btn btn-gradient-yellow btn-lg mt-3">
                         Sign Up to Get Access Now!
                     </a>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Grant Support Services Section -->
+    <section id="grant-support" class="grant-support-section">
+        <div class="container">
+            <div class="title-banner section-title-banner text-center mb-5">
+                <h2 class="fw-bold mb-0">Grant Support Services</h2>
+            </div>
+            <div class="text-center mx-auto" style="max-width: 720px;">
+                <h3 class="h4 fw-bold mb-3">Your Grant Experts for Over 10 Years</h3>
+                <p class="text-muted mb-0">
+                    As grant experts serving Canadian companies with strategy to grow business over the past 10 years, we have helped companies by consulting on demand. You can chat with us about planning, or directly connect when you need help. Whether you are a start up or a large corporation, we are happy to advise you on the journey to capture funding.
+                </p>
+                <p class="text-muted mb-0 mt-3">
+                    We know grants and the grant process is not always clear or easy to follow, so we offer hands on help on demand. <strong>Access support when you need it.</strong>
+                </p>
             </div>
         </div>
     </section>
@@ -94,7 +112,7 @@
                             <li>Grants dashboard</li>
                             <li>Consulting services</li>
                         </ul>
-                        <a href="{{ url_for('signup') }}" class="btn btn-gradient-yellow w-100">Get Started</a>
+                        <a href="{{ url_for('auth.signup') }}" class="btn btn-gradient-yellow w-100">Get Started</a>
                     </div>
                 </div>
 
@@ -120,7 +138,7 @@
                             <li>Grant writing assistance</li>
                             <li>Notifications & reminders</li>
                         </ul>
-                        <a href="{{ url_for('signup') }}" class="btn btn-gradient-yellow w-100">Get Started</a>
+                        <a href="{{ url_for('auth.signup') }}" class="btn btn-gradient-yellow w-100">Get Started</a>
                     </div>
                 </div>
 
@@ -145,7 +163,7 @@
                             <li>Upload your own grants</li>
                             <li>Direct connection to key service providers</li>
                         </ul>
-                        <a href="{{ url_for('signup') }}" class="btn btn-gradient-yellow w-100">Get Started</a>
+                        <a href="{{ url_for('auth.signup') }}" class="btn btn-gradient-yellow w-100">Get Started</a>
                     </div>
                 </div>
             </div>
@@ -169,7 +187,7 @@
                             <li>Investor grade documentation support</li>
                             <li>Fractional team member approach</li>
                         </ul>
-                        <a href="{{ url_for('contact', type='quote') }}" class="btn btn-gradient-yellow w-100">Request a Quote</a>
+                        <a href="{{ url_for('main.contact', type='quote') }}" class="btn btn-gradient-yellow w-100">Request a Quote</a>
                     </div>
                 </div>
 
@@ -188,7 +206,7 @@
                             <li>Grant education & access tools</li>
                             <li>Custom insights & reporting</li>
                         </ul>
-                        <a href="{{ url_for('contact', type='quote') }}" class="btn btn-gradient-yellow w-100">Contact Sales</a>
+                        <a href="{{ url_for('main.contact', type='quote') }}" class="btn btn-gradient-yellow w-100">Contact Sales</a>
                     </div>
                 </div>
             </div>
@@ -257,7 +275,7 @@
     </div>
 
     <!-- Resources Section -->
-    <section id="resources" class="resources-section py-5">
+    <section id="resources" class="resources-section">
         <div class="container">
             <div class="title-banner section-title-banner section-title-banner-resources text-center mb-5">
                 <h2 class="fw-bold mb-0">Explore Our Resources</h2>
@@ -283,7 +301,7 @@
                             </div>
                             
                             <!-- Button -->
-                            <a href="{{ url_for('resources_view', key='rd') }}" class="btn btn-gradient-yellow btn-sm align-self-start">
+                            <a href="{{ url_for('main.resources_view', key='rd') }}" class="btn btn-gradient-yellow btn-sm align-self-start">
                                 Explore Resources <i class="bi bi-arrow-right"></i>
                             </a>
                         </div>
@@ -310,7 +328,7 @@
                             </div>
                             
                             <!-- Button -->
-                            <a href="{{ url_for('resources_view', key='export') }}" class="btn btn-gradient-yellow btn-sm align-self-start">
+                            <a href="{{ url_for('main.resources_view', key='export') }}" class="btn btn-gradient-yellow btn-sm align-self-start">
                                 Explore Resources <i class="bi bi-arrow-right"></i>
                             </a>
                         </div>
@@ -337,7 +355,7 @@
                             </div>
                             
                             <!-- Button -->
-                            <a href="{{ url_for('resources_view', key='hiring') }}" class="btn btn-gradient-yellow btn-sm align-self-start">
+                            <a href="{{ url_for('main.resources_view', key='hiring') }}" class="btn btn-gradient-yellow btn-sm align-self-start">
                                 Explore Resources <i class="bi bi-arrow-right"></i>
                             </a>
                         </div>
@@ -408,12 +426,12 @@
     </section>
 
     <!-- CTA Section -->
-    <section class="cta-section py-5 text-center">
+    <section class="cta-section text-center">
         <div class="container">
             <h2 class="fw-bold mb-3">Ready to Find Your Funding?</h2>
             <p class="lead mb-4">Join thousands of businesses accessing grants with The Grant Roadmap</p>
             <div class="d-flex gap-3 justify-content-center flex-wrap">
-                <a href="{{ url_for('contact') }}" class="btn btn-cta-contact btn-lg">Contact Us</a>
+                <a href="{{ url_for('main.contact') }}" class="btn btn-cta-contact btn-lg">Contact Us</a>
             </div>
         </div>
     </section>
@@ -436,8 +454,8 @@
                 <div class="col-md-6 col-lg-3">
                     <h6 class="fw-bold mb-4">Company</h6>
                     <ul class="footer-links">
-                        <li><a href="{{ url_for('home') }}">Services</a></li>
-                        <li><a href="{{ url_for('contact') }}">Contact Us</a></li>
+                        <li><a href="{{ url_for('main.home') }}">Services</a></li>
+                        <li><a href="{{ url_for('main.contact') }}">Contact Us</a></li>
                         <li><a href="#" onclick="return false;">About Us</a></li>
                     </ul>
                 </div>
@@ -447,7 +465,7 @@
                     <h6 class="fw-bold mb-4">Support</h6>
                     <ul class="footer-links">
                         <li><a href="#" onclick="return false;">Terms of Service</a></li>
-                        <li><a href="{{ url_for('contact', type='quote') }}">Sales</a></li>
+                        <li><a href="{{ url_for('main.contact', type='quote') }}">Sales</a></li>
                         <li><a href="#" onclick="return false;">Help Center</a></li>
                     </ul>
                 </div>
@@ -456,7 +474,7 @@
                 <div class="col-md-6 col-lg-3">
                     <h6 class="fw-bold mb-4">Resources</h6>
                     <ul class="footer-links">
-                        <li><a href="{{ url_for('faq') }}">FAQs</a></li>
+                        <li><a href="{{ url_for('main.faq') }}">FAQs</a></li>
                         <li><a href="#" onclick="return false;">Partner Network</a></li>
                         <li><a href="#" onclick="return false;">Grant Guide</a></li>
                     </ul>

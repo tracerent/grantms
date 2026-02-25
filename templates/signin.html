@@ -13,7 +13,7 @@
                         <p class="text-muted mb-0">Sign in to access your grants</p>
                     </div>
 
-                    <form method="POST" action="{{ url_for('signin') }}">
+                    <form method="POST" action="{{ url_for('auth.signin') }}">
                         <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
                         <div class="mb-2">
                             <label class="form-label" for="email">Email Address</label>
@@ -45,7 +45,7 @@
                     </form>
                     <div class="text-center mb-1">
                         <p class="text-muted mb-0">
-                            <a href="{{ url_for('forgot_password') }}" class="text-decoration-none">Forgot your password?</a>
+                            <a href="{{ url_for('auth.forgot_password') }}" class="text-decoration-none">Forgot your password?</a>
                         </p>
                     </div>
 
@@ -71,7 +71,7 @@
                     <br>
                     <div class="text-center mt-1 pt-1 border-top">
                         <p class="text-muted mb-0">Don't have an account? 
-                            <a href="{{ url_for('signup') }}" class="text-decoration-none fw-bold">Sign Up</a>
+                            <a href="{{ url_for('auth.signup') }}" class="text-decoration-none fw-bold">Sign Up</a>
                         </p>
                     </div>
                 </div>

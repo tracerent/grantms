@@ -265,6 +265,17 @@ body {
     background-color: var(--light-bg);
 }
 
+/* Account tab dropdown: hover highlight */
+.account-dropdown-item:hover {
+    background-color: var(--accent-blue);
+    color: var(--grey-900);
+}
+
+.account-dropdown-item:focus {
+    background-color: var(--accent-blue);
+    color: var(--grey-900);
+}
+
 /* =====================================================
    SERVICES PAGE
    ===================================================== */
@@ -277,7 +288,7 @@ body {
 .hero-section {
     background: transparent;
     color: #1f2937;
-    padding: 80px 0 60px;
+    padding: 80px 0;
     border-bottom: 1px solid #e5e7eb;
 }
 
@@ -574,6 +585,30 @@ body {
     color: #6b7280;
 }
 
+/* Grant Support Services Section */
+.grant-support-section {
+    padding: 80px 0;
+    background: transparent;
+    font-family: var(--font-family);
+    font-size: var(--text-body);
+}
+
+.grant-support-section h2 {
+    font-size: var(--text-major);
+    margin-bottom: 50px;
+    color: #1f2937;
+}
+
+.grant-support-section h3 {
+    font-size: var(--text-title);
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.grant-support-section p {
+    font-size: var(--text-body);
+}
+
 /* Plans Section */
 .plans-section {
     padding: 80px 0;
@@ -802,6 +837,7 @@ body {
 /* CTA Section */
 .cta-section {
     background: linear-gradient(135deg, #fef08a 0%, #facc15 50%, #eab308 100%);
+    padding: 80px 0;
 }
 
 .cta-section h2,
@@ -966,14 +1002,27 @@ body {
     color: #1f2937;
 }
 
-.dashboard-header .btn {
+.dashboard-header .btn:not(.btn-gradient-yellow) {
     border-radius: 8px;
     background: var(--primary-color);
     border: none;
 }
 
-.dashboard-header .btn:hover {
+.dashboard-header .btn:not(.btn-gradient-yellow):hover {
     background: var(--primary-dark);
+}
+
+.dashboard-header .btn-gradient-yellow {
+    border-radius: 8px;
+    background: linear-gradient(135deg, #fef08a 0%, #facc15 50%, #eab308 100%);
+    color: var(--black) !important;
+    border: 1px solid rgba(202, 138, 4, 0.4);
+}
+
+.dashboard-header .btn-gradient-yellow:hover {
+    background: linear-gradient(135deg, #fef08a 0%, #eab308 50%, #ca8a04 100%);
+    color: var(--black) !important;
+    border-color: var(--primary-dark);
 }
 
 /* Stat Cards */
@@ -1265,6 +1314,431 @@ body {
     background: transparent;
 }
 
+/* Account tab: section cards and edit */
+/* Account tab sections: same sectional pattern as Home (border outline + inner content style) */
+.account-section.home-section {
+    /* Uses .home-section border, border-radius 8px, padding 1rem from main .home-section rule */
+}
+
+.account-section .home-section-title-banner {
+    margin-bottom: 1rem;
+}
+
+.account-section-inner {
+    padding: 1rem;
+    background: var(--white);
+    border: 1px solid var(--grey-200);
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    font-family: var(--font-family);
+    font-size: var(--text-body);
+}
+
+/* Account detail fields (personal/company view): each field in a bordered box */
+.account-detail-field {
+    border: 1px solid var(--grey-200);
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    background: var(--white);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.account-detail-field .account-val {
+    margin-top: 0.25rem;
+}
+
+/* Account edit form: each field group in a bordered box */
+.account-edit-field {
+    border: 1px solid var(--grey-200);
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    background: var(--white);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.account-edit-field .form-control {
+    border-color: var(--grey-200);
+}
+
+/* Company Information subsection titles (Company Identification, Founder, etc.) */
+.account-subsection-title {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--grey-700);
+    background: var(--grey-100);
+    border: 1px solid var(--grey-200);
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.5rem;
+    width: 100%;
+}
+
+/* Account lists (team members, billing history, payment methods): each item bordered */
+.account-list-item {
+    border: 1px solid var(--grey-200);
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.5rem;
+    background: var(--white);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.account-list-item:last-child {
+    margin-bottom: 0;
+}
+
+.account-edit-btn:hover {
+    color: var(--primary-color) !important;
+}
+
+/* Edit icon button: square with gradient yellow */
+.account-edit-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0 !important;
+    border: 1px solid rgba(202, 138, 4, 0.4) !important;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #fef08a 0%, #facc15 50%, #eab308 100%);
+    color: var(--black) !important;
+    font-weight: 600;
+    text-decoration: none !important;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.account-edit-btn:hover,
+.account-edit-btn:focus {
+    background: linear-gradient(135deg, #fef08a 0%, #eab308 50%, #ca8a04 100%);
+    border-color: var(--primary-dark) !important;
+    color: var(--black) !important;
+}
+
+.account-edit-btn i {
+    font-size: 0.95rem;
+}
+
+/* Current plan stats: Days remaining, Team members, Next billing */
+.plan-stats-row {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.plan-stat-card {
+    background: var(--grey-100);
+    border: 1px solid var(--grey-200);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    text-align: center;
+    height: 100%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.plan-stat-card .plan-stat-icon {
+    font-size: 1.25rem;
+    color: var(--grey-600);
+    margin-bottom: 0.35rem;
+}
+
+.plan-stat-card .plan-stat-icon i {
+    vertical-align: middle;
+}
+
+.plan-stat-card .plan-stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--grey-900);
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+}
+
+.plan-stat-card .plan-stat-value-sm {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.plan-stat-card .plan-stat-sep {
+    font-weight: 400;
+    color: var(--grey-500);
+    margin: 0 0.1em;
+}
+
+.plan-stat-card .plan-stat-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--grey-600);
+    margin-top: 0.15rem;
+}
+
+.plan-stat-card .progress {
+    background: var(--grey-200);
+    border-radius: 2px;
+}
+
+.plan-stat-card .progress-bar {
+    background: linear-gradient(90deg, #fef08a 0%, #eab308 100%);
+    border-radius: 2px;
+}
+
+.plan-stat-card.plan-stat-days .plan-stat-value { color: var(--primary-color); }
+.plan-stat-card.plan-stat-members .plan-stat-value { color: var(--grey-800); }
+
+/* =====================================================
+   Account → Subscriptions: consistent styling
+   ===================================================== */
+
+.account-page-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--grey-900);
+    letter-spacing: -0.02em;
+}
+
+/* Current plan: plan name + amount block */
+.subscription-plan-hero {
+    background: var(--grey-100);
+    border: 1px solid var(--grey-200);
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+/* Plan type badge – stands out as current plan name */
+.subscription-plan-badge {
+    display: inline-block;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--grey-900);
+    background: linear-gradient(135deg, #fef08a 0%, #facc15 50%, #eab308 100%);
+    border: 1px solid rgba(202, 138, 4, 0.4);
+    border-radius: 6px;
+    padding: 0.4rem 0.9rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 3px rgba(234, 179, 8, 0.2);
+}
+
+.subscription-plan-price {
+    margin-bottom: 0.25rem;
+}
+
+.subscription-plan-amount {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--primary-color);
+    letter-spacing: -0.02em;
+}
+
+.subscription-plan-period {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--grey-600);
+    margin-left: 0.15rem;
+}
+
+.subscription-plan-billing-note {
+    font-size: 0.8rem;
+    color: var(--grey-600);
+    margin-bottom: 0;
+}
+
+/* Empty states (no invoices, no payment methods) */
+.subscription-empty-state {
+    text-align: center;
+    padding: 2rem 1.5rem;
+    background: var(--grey-100);
+    border: 1px dashed var(--grey-300);
+    border-radius: 8px;
+}
+
+.subscription-empty-icon {
+    font-size: 2rem;
+    color: var(--grey-400);
+    display: block;
+    margin-bottom: 0.75rem;
+}
+
+.subscription-empty-text {
+    font-size: var(--text-body);
+    color: var(--grey-600);
+}
+
+/* Section intro text (Upgrade plan copy) */
+.subscription-section-desc {
+    font-size: var(--text-body);
+    color: var(--grey-700);
+    line-height: 1.5;
+}
+
+/* List secondary text (amount in billing history) */
+.subscription-list-amount {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--grey-600);
+}
+
+.subscription-list-icon {
+    color: var(--grey-500);
+    font-size: 1.1rem;
+}
+
+/* Payment methods: thumbnail / square cards */
+.payment-methods-grid {
+    margin-bottom: 0;
+}
+
+.payment-method-card {
+    position: relative;
+    background: var(--white);
+    border: 1px solid var(--grey-200);
+    border-radius: 8px;
+    padding: 1rem 1rem 1.25rem;
+    padding-top: 2rem;
+    height: 100%;
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.payment-method-default-label {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--grey-600);
+    user-select: none;
+}
+
+.payment-method-default-label:hover {
+    color: var(--grey-800);
+}
+
+.payment-method-default-label input[type="checkbox"] {
+    cursor: pointer;
+    width: 1rem;
+    height: 1rem;
+}
+
+.payment-method-default-text {
+    white-space: nowrap;
+}
+
+.payment-method-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-color: var(--grey-300);
+}
+
+.payment-method-card-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.payment-method-card-row:first-child {
+    margin-bottom: 0.5rem;
+}
+
+.payment-method-card-last4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--grey-800);
+    letter-spacing: 0.02em;
+}
+
+.payment-method-card-expiry {
+    font-size: 0.85rem;
+    color: var(--grey-600);
+}
+
+.payment-method-card-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--grey-800);
+    text-transform: capitalize;
+}
+
+.payment-card-brand-icon {
+    font-size: 1.75rem;
+    line-height: 1;
+    color: var(--grey-700);
+}
+
+.payment-method-card-brand-name {
+    flex-shrink: 0;
+}
+
+/* Billing history: invoice thumbnails / cards */
+.billing-history-grid {
+    margin-bottom: 0;
+}
+
+.invoice-card {
+    background: var(--white);
+    border: 1px solid var(--grey-200);
+    border-radius: 8px;
+    padding: 1rem 1rem 1.25rem;
+    height: 100%;
+    min-height: 140px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.invoice-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-color: var(--grey-300);
+}
+
+.invoice-card-icon {
+    font-size: 1.75rem;
+    color: var(--grey-500);
+    margin-bottom: 0.5rem;
+}
+
+.invoice-card-plan {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--grey-800);
+}
+
+.invoice-card-date {
+    font-size: 0.8rem;
+    margin-top: 0.15rem;
+}
+
+.invoice-card-amount {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--grey-800);
+    margin-top: 0.25rem;
+}
+
+.account-val {
+    font-size: var(--text-body);
+    color: #1f2937;
+}
+
 /* Modal Styles */
 .modal-content {
     border-radius: 12px;
@@ -1323,7 +1797,7 @@ body {
     }
 
     .hero-section {
-        padding: 50px 0 40px;
+        padding: 50px 0;
     }
 
     .hero-section h1 {

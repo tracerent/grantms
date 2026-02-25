@@ -338,6 +338,10 @@
         })
         .then(function(r) { return r.json(); })
         .then(function(data) {
+            if (data.redirect && data.open_subscriptions) {
+                window.location = (data.redirect || '').replace(/\?.*$/, '') + '#account-subscriptions';
+                return;
+            }
             if (data.success) {
                 var modalEl = document.getElementById('quarterModal');
                 if (modalEl) (window.bootstrap && window.bootstrap.Modal.getInstance(modalEl))?.hide();

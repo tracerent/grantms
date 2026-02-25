@@ -12,13 +12,16 @@
                 var provider = this.getAttribute('data-provider');
                 if (provider && authBase) {
                     var cnEl = document.getElementById('company_name');
-                    var nameEl = document.getElementById('name');
+                    var fnEl = document.getElementById('first_name');
+                    var lnEl = document.getElementById('last_name');
                     var cnInput = form.querySelector('input[name="company_name"]');
                     var nameInput = form.querySelector('input[name="name"]');
                     if (cnEl && cnInput) cnInput.value = cnEl.value ? cnEl.value.trim() : '';
-                    if (nameEl && nameInput) nameInput.value = nameEl.value ? nameEl.value.trim() : '';
-                    if (cnInput && nameInput && (cnInput.value === '' || nameInput.value === '')) {
-                        alert('Please enter Company name and Your name at the top first.');
+                    var firstName = fnEl && fnEl.value ? fnEl.value.trim() : '';
+                    var lastName = lnEl && lnEl.value ? lnEl.value.trim() : '';
+                    if (nameInput) nameInput.value = (firstName + ' ' + lastName).trim() || '';
+                    if (cnInput && (cnInput.value === '' || !firstName)) {
+                        alert('Please enter Company name and First name at the top first.');
                         return;
                     }
                     form.action = authBase + provider + '/login';

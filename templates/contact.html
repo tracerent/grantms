@@ -12,7 +12,7 @@
                         <h2 class="mb-1 fw-bold contact-card-title">{{ page_title }}</h2>
                         <p class="text-muted mb-4">{{ page_subtitle }}</p>
 
-                        <form method="POST" action="{{ url_for('submit_contact') }}">
+                        <form method="POST" action="{{ url_for('main.submit_contact') }}">
                             <input type="hidden" name="contact_type" value="{{ contact_type }}">
 
                             <div class="mb-4">
