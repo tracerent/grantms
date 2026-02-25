@@ -3,12 +3,8 @@ from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, session, jsonify
 
 from utils.decorators import login_required
-from utils.database import (
-    get_user_by_id, get_user_grants, get_all_grants, get_user_filter_settings, save_user_filter_settings,
-    get_company_for_user, get_company_members, get_subscription_plan_name, get_subscription_max_members,
-    get_trial_status, get_subscription_banner_status, get_billing_history, get_payment_methods,
-    get_company_subscription, get_last_invoice_amount_for_plan, _user_display_name,
-)
+from utils.database import Database
+from utils.utils import Utils
 
 dashboard_bp = Blueprint("dashboard", __name__, url_prefix="")
 
@@ -16,7 +12,7 @@ dashboard_bp = Blueprint("dashboard", __name__, url_prefix="")
 def _current_plan_display(company_id):
     """Build dict for Current Plan section.
     Basic: no billing (billed_amount None). Paid plans: billed annually; billed_amount = last invoice amount or plan annual_cost; monthly_cost = current plan monthly."""
-    sub = get_company_subscription(company_id) if company_id else None
+    sub = Database.get_company_subscription(company_id) if company_id else None
     if not sub:
         return {"plan_display_name": "Basic Plan", "annual_cost": 0, "monthly_cost": 0, "member_count": 1,
                 "days_remaining": None, "next_billing_date": None, "subscription_id": 0, "billed_amount": None}
@@ -29,7 +25,7 @@ def _current_plan_display(company_id):
     # Amount the plan was billed at: last invoice for this plan, or plan's annual cost (paid plans only)
     billed_amount = None
     if plan_id != 0:
-        billed_amount = get_last_invoice_amount_for_plan(company_id, plan_id)
+        billed_amount = Database.get_last_invoice_amount_for_plan(company_id, plan_id)
         if billed_amount is None:
             billed_amount = annual
     ends_at = sub.get("ends_at")
@@ -90,17 +86,17 @@ def account_subscriptions_fragment():
     user_id = session.get("user_id")
     if not user_id:
         return jsonify({"error": "Not logged in"}), 401
-    user = get_user_by_id(user_id)
-    company = get_company_for_user(user_id)
+    user = Database.get_user_by_id(user_id)
+    company = Database.get_company_for_user(user_id)
     company_id = company["id"] if company else None
-    team_members = get_company_members(company_id) if company_id else []
-    plan_name = get_subscription_plan_name(company_id)
-    plan_max_members = get_subscription_max_members(company_id)
+    team_members = Database.get_company_members(company_id) if company_id else []
+    plan_name = Database.get_subscription_plan_name(company_id)
+    plan_max_members = Database.get_subscription_max_members(company_id)
     current_plan_display = _current_plan_display(company_id)
-    billing_history = get_billing_history(company_id) if company_id else []
-    payment_methods = get_payment_methods(company_id) if company_id else []
+    billing_history = Database.get_billing_history(company_id) if company_id else []
+    payment_methods = Database.get_payment_methods(company_id) if company_id else []
     has_default_payment_method = any((pm or {}).get("is_default") for pm in (payment_methods or []))
-    subscription_banner = get_subscription_banner_status(company_id) if company_id else {"banner_type": "welcome", "days_left": None}
+    subscription_banner = Database.get_subscription_banner_status(company_id) if company_id else {"banner_type": "welcome", "days_left": None}
     account_html = render_template(
         "dashboard_account_fragment.html",
         current_plan_display=current_plan_display,
@@ -128,30 +124,30 @@ def account_subscriptions_fragment():
 @login_required
 def dashboard():
     user_id = session["user_id"]
-    user = get_user_by_id(user_id)
+    user = Database.get_user_by_id(user_id)
     if not user:
         session.clear()
         from flask import flash
         flash("Your session is invalid. Please sign in.", "warning")
         return redirect(url_for("auth.signin"))
-    user_grants = get_user_grants(user_id)
-    all_grants = get_all_grants()
-    saved_filters = get_user_filter_settings(user_id)
+    user_grants = Database.get_user_grants(user_id)
+    all_grants = Database.get_all_grants()
+    saved_filters = Database.get_user_filter_settings(user_id)
     display_matches = _apply_grants_filters(all_grants, saved_filters or {})
     portfolio_grant_ids = [g["id"] for g in user_grants] if user_grants else []
     portfolio_grants_info = [{"id": g["id"], "year": g.get("year"), "quarter": g.get("quarter")} for g in (user_grants or [])]
-    company = get_company_for_user(user_id)
+    company = Database.get_company_for_user(user_id)
     company_id = company["id"] if company else None
-    team_members = get_company_members(company_id) if company_id else []
-    plan_name = get_subscription_plan_name(company_id)
-    plan_max_members = get_subscription_max_members(company_id)
-    trial_status = get_trial_status(company_id) if company_id else {"days_left": None, "ended": False}
-    subscription_banner = get_subscription_banner_status(company_id) if company_id else {"banner_type": "welcome", "days_left": None}
+    team_members = Database.get_company_members(company_id) if company_id else []
+    plan_name = Database.get_subscription_plan_name(company_id)
+    plan_max_members = Database.get_subscription_max_members(company_id)
+    trial_status = Database.get_trial_status(company_id) if company_id else {"days_left": None, "ended": False}
+    subscription_banner = Database.get_subscription_banner_status(company_id) if company_id else {"banner_type": "welcome", "days_left": None}
     is_primary_user = (user.get("is_primary") == 1) if user else False
-    user_display_name = _user_display_name(user) if user else ""
+    user_display_name = Utils.get_user_display_name(user) if user else ""
     current_plan_display = _current_plan_display(company_id)
-    billing_history = get_billing_history(company_id) if company_id else []
-    payment_methods = get_payment_methods(company_id) if company_id else []
+    billing_history = Database.get_billing_history(company_id) if company_id else []
+    payment_methods = Database.get_payment_methods(company_id) if company_id else []
     has_default_payment_method = any((pm or {}).get("is_default") for pm in (payment_methods or []))
 
     return render_template(
@@ -190,7 +186,7 @@ def api_save_list_filters():
         "funding_for": (data.get("funding_for") or "").strip(),
     }
     try:
-        save_user_filter_settings(session["user_id"], filters)
+        Database.save_user_filter_settings(session["user_id"], filters)
         return jsonify({"success": True}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -202,9 +198,9 @@ def api_dashboard_home():
     if "user_id" not in session:
         return jsonify({"error": "Not logged in"}), 401
     user_id = session["user_id"]
-    user_grants = get_user_grants(user_id)
-    all_grants = get_all_grants()
-    saved_filters = get_user_filter_settings(user_id)
+    user_grants = Database.get_user_grants(user_id)
+    all_grants = Database.get_all_grants()
+    saved_filters = Database.get_user_filter_settings(user_id)
     display_matches = _apply_grants_filters(all_grants, saved_filters or {})
     total_value = 0
     for g in (user_grants or []):

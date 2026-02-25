@@ -7,7 +7,7 @@ import mammoth
 main_bp = Blueprint("main", __name__)
 
 
-# Resource categories (key -> name, description, coming_soon)
+# Remove the coming_soon flag when a resource is available for users
 RESOURCE_FOLDERS = {
     "rd": {"name": "R&D Resources", "description": "Guide to prepare for an R&D grant application, including eligibility criteria, required documentation, and best practices."},
     "export": {"name": "Export Resources", "description": "Guide to writing an export grant to expand your business internationally."},

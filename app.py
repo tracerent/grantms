@@ -1,33 +1,31 @@
 from flask import Flask, render_template, session
 from utils.config import get_flask_config, get_oauth_config
-from utils.database import init_db, get_user_by_id, _user_display_name
+from utils.database import Database
+from utils.utils import Utils
 from authlib.integrations.flask_client import OAuth
 
 from routes import main_bp, auth_bp, dashboard_bp, grants_bp, account_bp
 
 app = Flask(__name__)
 
-# Load Flask configuration from core-config.yaml
 flask_config = get_flask_config()
 app.secret_key = flask_config.get("secret_key", "grantms-#24n-25y-roadmap-dev")
 
-# Initialize DB on startup
-init_db()
+Database.init_db()
 
 
 @app.context_processor
 def inject_current_user():
     """Make current_user (email, first_name, last_name, display_name, etc.) available in all templates when logged in."""
     if session.get("user_id"):
-        user = get_user_by_id(session["user_id"])
+        user = Database.get_user_by_id(session["user_id"])
         if user:
             u = dict(user)
-            u["display_name"] = _user_display_name(user)
+            u["display_name"] = Utils.get_user_display_name(user)
             return {"current_user": u}
     return {"current_user": None}
 
 
-# OAuth (Google, Microsoft, Apple). Auth routes use current_app.oauth.
 oauth = OAuth(app)
 app.oauth = oauth
 _oauth_cfg = get_oauth_config()
@@ -64,7 +62,6 @@ def not_found(_e):
     return render_template("404.html"), 404
 
 
-# Register blueprints
 app.register_blueprint(main_bp)
 app.register_blueprint(auth_bp)
 app.register_blueprint(dashboard_bp)

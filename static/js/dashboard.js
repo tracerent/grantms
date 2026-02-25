@@ -485,7 +485,7 @@
                 var btn = document.getElementById('btn-process-payment');
                 if (context === 'add_method') {
                     if (saveWrap) saveWrap.classList.add('d-none');
-                    if (btn) btn.textContent = 'Save card';
+                    if (btn) btn.textContent = 'Add payment method';
                 } else {
                     if (saveWrap) saveWrap.classList.remove('d-none');
                     if (btn) btn.textContent = 'Process payment';

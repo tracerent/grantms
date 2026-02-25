@@ -5,12 +5,8 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from utils.config import get_oauth_config, get_mail_config
-from utils.database import (
-    create_user, get_user_by_id, get_user_by_email, get_user_by_oauth,
-    create_oauth_user, link_oauth_to_user, create_company_for_user,
-    create_reset_token, get_reset_token_user_id, delete_reset_token, update_user_password,
-    _user_display_name,
-)
+from utils.database import Database
+from utils.utils import Utils
 
 auth_bp = Blueprint("auth", __name__, url_prefix="")
 OAUTH_PROVIDERS = ("google", "microsoft", "apple")
@@ -96,7 +92,7 @@ def oauth_callback(provider):
         flash("Could not get your email from the sign-in provider.", "danger")
         return redirect(url_for("auth.signin"))
 
-    user = get_user_by_oauth(provider, provider_id)
+    user = Database.get_user_by_oauth(provider, provider_id)
     if user:
         if user.get("is_active") == 0:
             flash("This account has been deactivated. Please contact your account administrator.", "danger")
@@ -104,27 +100,27 @@ def oauth_callback(provider):
         session["user_id"] = user["id"]
         session["username"] = user["email"]
         if next_url and next_url.startswith(request.host_url):
-            flash(f"Welcome back, {_user_display_name(user) or user['email'] or 'User'}!", "success")
+            flash(f"Welcome back, {Utils.get_user_display_name(user) or user['email'] or 'User'}!", "success")
     else:
-        existing = get_user_by_email(email)
+        existing = Database.get_user_by_email(email)
         if existing:
             if existing.get("is_active") == 0:
                 flash("This account has been deactivated. Please contact your account administrator.", "danger")
                 return redirect(url_for("auth.signin"))
-            link_oauth_to_user(existing["id"], provider, provider_id)
+            Database.link_oauth_to_user(existing["id"], provider, provider_id)
             session["user_id"] = existing["id"]
             session["username"] = existing["email"]
             if next_url and next_url.startswith(request.host_url):
                 flash(f"Welcome back! Your account is now linked to {provider.title()}.", "success")
         else:
             try:
-                user_id = create_oauth_user(email, name, company_name, provider, provider_id)
-                create_company_for_user(user_id, company_name=company_name)
-                user = get_user_by_id(user_id)
+                user_id = Database.create_oauth_user(email, name, company_name, provider, provider_id)
+                Database.create_company_for_user(user_id, company_name=company_name)
+                user = Database.get_user_by_id(user_id)
                 session["user_id"] = user_id
                 session["username"] = user["email"]
                 if next_url and next_url.startswith(request.host_url):
-                    flash(f"Welcome, {_user_display_name(user) or name or email or 'User'}!", "success")
+                    flash(f"Welcome, {Utils.get_user_display_name(user) or name or email or 'User'}!", "success")
             except Exception as e:
                 if "Duplicate entry" in str(e) or "email" in str(e).lower():
                     flash("An account with this email already exists. Sign in with email and password.", "danger")
@@ -144,14 +140,14 @@ def forgot_password():
     email = request.form.get("email", "").strip()
     if not email:
         return render_template("forgot_password.html", error="Please enter your email address.")
-    user = get_user_by_email(email)
+    user = Database.get_user_by_email(email)
     if not user:
         return render_template("forgot_password.html", error="Email address not registered with us. Please create an account.", email=email)
     if not user.get("password"):
         return render_template("forgot_password.html", error="This account uses sign-in with Google/Microsoft/Apple. Use that to sign in.", email=email)
     token = secrets.token_urlsafe(32)
     expires_at = datetime.utcnow() + timedelta(hours=1)
-    create_reset_token(user["id"], token, expires_at)
+    Database.create_reset_token(user["id"], token, expires_at)
     reset_link = request.url_root.rstrip("/") + url_for("auth.reset_password", token=token)
     sent = _send_password_reset_email(email, reset_link)
     return render_template("forgot_password_done.html", sent=sent, reset_link=reset_link, email=email)
@@ -164,7 +160,7 @@ def reset_password():
         flash("Invalid or missing reset link.", "danger")
         return redirect(url_for("auth.forgot_password"))
     if request.method == "GET":
-        user_id = get_reset_token_user_id(token)
+        user_id = Database.get_reset_token_user_id(token)
         if not user_id:
             flash("This reset link has expired or is invalid.", "danger")
             return redirect(url_for("auth.forgot_password"))
@@ -180,12 +176,12 @@ def reset_password():
     if len(new_password) < 6:
         flash("Password must be at least 6 characters.", "danger")
         return render_template("reset_password.html", token=token)
-    user_id = get_reset_token_user_id(token)
+    user_id = Database.get_reset_token_user_id(token)
     if not user_id:
         flash("This reset link has expired or is invalid.", "danger")
         return redirect(url_for("auth.forgot_password"))
-    update_user_password(user_id, generate_password_hash(new_password))
-    delete_reset_token(token)
+    Database.update_user_password(user_id, generate_password_hash(new_password))
+    Database.delete_reset_token(token)
     flash("Your password has been reset. You can sign in now.", "success")
     return redirect(url_for("auth.signin"))
 
@@ -207,9 +203,9 @@ def signup():
             return redirect(url_for("auth.signup"))
 
         try:
-            user_id = create_user(first_name, last_name, email, generate_password_hash(password), company_name)
-            create_company_for_user(user_id, company_name=company_name)
-            user = get_user_by_id(user_id)
+            user_id = Database.create_user(first_name, last_name, email, generate_password_hash(password), company_name)
+            Database.create_company_for_user(user_id, company_name=company_name)
+            user = Database.get_user_by_id(user_id)
             session["user_id"] = user_id
             session["username"] = user["email"]
             return redirect(url_for("dashboard.dashboard"))
@@ -239,7 +235,7 @@ def signin():
             flash("Email and password are required", "danger")
             return redirect(url_for("auth.signin"))
 
-        user = get_user_by_email(email)
+        user = Database.get_user_by_email(email)
         if not user or not user.get("password"):
             flash("Invalid email or password", "danger")
             return redirect(url_for("auth.signin"))
@@ -253,7 +249,7 @@ def signin():
         session["username"] = user["email"]
         next_url = request.form.get("next") or request.args.get("next")
         if next_url and next_url.startswith(request.host_url):
-            flash(f"Welcome back, {_user_display_name(user) or user['email'] or 'User'}!", "success")
+            flash(f"Welcome back, {Utils.get_user_display_name(user) or user['email'] or 'User'}!", "success")
         if next_url and next_url.startswith(request.host_url):
             return redirect(next_url)
         return redirect(url_for("dashboard.dashboard"))

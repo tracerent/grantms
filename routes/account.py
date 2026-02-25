@@ -2,13 +2,7 @@
 from datetime import datetime
 from flask import Blueprint, request, redirect, url_for, session, flash, jsonify
 
-from utils.database import (
-    update_user_profile, update_user_personal_info, get_user_by_id, get_company_for_user,
-    get_company_members, get_subscription_max_members, create_company_for_user,
-    update_company, update_company_subscription, set_user_active, add_team_member,
-    get_plan_by_id, get_payment_methods, add_payment_method, set_default_payment_method,
-    clear_default_payment_method, remove_payment_method, add_invoice,
-)
+from utils.database import Database
 
 account_bp = Blueprint("account", __name__)
 
@@ -49,7 +43,7 @@ def update_profile():
         return redirect(url_for("auth.signin"))
     user_id = session["user_id"]
     try:
-        update_user_profile(user_id)
+        Database.update_user_profile(user_id)
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return jsonify({"success": True, "message": "Profile updated"}), 200
         flash("Profile updated", "success")
@@ -75,7 +69,7 @@ def api_account_profile():
     if not email:
         return jsonify({"error": "Email is required"}), 400
     try:
-        update_user_personal_info(
+        Database.update_user_personal_info(
             user_id,
             first_name=first_name or None,
             last_name=last_name or None,
@@ -94,12 +88,12 @@ def api_account_company():
         return jsonify({"error": "Not logged in"}), 401
     data = request.get_json() or {}
     user_id = session["user_id"]
-    company = get_company_for_user(user_id)
+    company = Database.get_company_for_user(user_id)
     if not company:
-        company = create_company_for_user(user_id)
-    update_company_subscription(company["id"])
+        company = Database.create_company_for_user(user_id)
+    Database.update_company_subscription(company["id"])
     try:
-        update_company(
+        Database.update_company(
             company["id"],
             legal_entity_name=_str_val(data, "legal_entity_name"),
             operating_name=_str_val(data, "operating_name"),
@@ -127,14 +121,14 @@ def api_account_team_add():
     if "user_id" not in session:
         return jsonify({"error": "Not logged in"}), 401
     user_id = session["user_id"]
-    user = get_user_by_id(user_id)
+    user = Database.get_user_by_id(user_id)
     if not user:
         return jsonify({"error": "User not found"}), 401
-    company = get_company_for_user(user_id)
+    company = Database.get_company_for_user(user_id)
     if not company:
         return jsonify({"error": "No company associated with your account"}), 400
-    plan_max = get_subscription_max_members(company["id"])
-    current_count = len(get_company_members(company["id"]))
+    plan_max = Database.get_subscription_max_members(company["id"])
+    current_count = len(Database.get_company_members(company["id"]))
     if current_count >= plan_max:
         return jsonify({"error": f"Your plan allows up to {plan_max} member(s). Upgrade to add more."}), 400
     data = request.get_json() or {}
@@ -145,7 +139,7 @@ def api_account_team_add():
     if not email:
         return jsonify({"error": "Email is required"}), 400
     try:
-        new_id = add_team_member(company["id"], first_name, last_name, email, job_title)
+        new_id = Database.add_team_member(company["id"], first_name, last_name, email, job_title)
         if new_id:
             return jsonify({"success": True, "user_id": new_id})
         return jsonify({"error": "Could not add member (email may already be registered)"}), 400
@@ -159,7 +153,7 @@ def api_account_team_toggle_active():
     if "user_id" not in session:
         return jsonify({"error": "Not logged in"}), 401
     user_id = session["user_id"]
-    user = get_user_by_id(user_id)
+    user = Database.get_user_by_id(user_id)
     if not user:
         return jsonify({"error": "User not found"}), 401
     data = request.get_json() or {}
@@ -172,15 +166,15 @@ def api_account_team_toggle_active():
         return jsonify({"error": "Invalid user_id"}), 400
     if target_id == user_id:
         return jsonify({"error": "You cannot change your own status"}), 400
-    company = get_company_for_user(user_id)
+    company = Database.get_company_for_user(user_id)
     if not company:
         return jsonify({"error": "No company"}), 400
-    members = get_company_members(company["id"])
+    members = Database.get_company_members(company["id"])
     target = next((m for m in members if m["id"] == target_id), None)
     if not target:
         return jsonify({"error": "User not found in your team"}), 404
     new_active = 0 if target.get("is_active") == 1 else 1
-    set_user_active(target_id, new_active)
+    Database.set_user_active(target_id, new_active)
     return jsonify({"success": True, "is_active": new_active})
 
 
@@ -190,7 +184,7 @@ def api_account_payment_methods_add():
     if "user_id" not in session:
         return jsonify({"error": "Not logged in"}), 401
     user_id = session["user_id"]
-    company = get_company_for_user(user_id)
+    company = Database.get_company_for_user(user_id)
     if not company:
         return jsonify({"error": "No company associated with your account"}), 400
     data = request.get_json() or {}
@@ -198,13 +192,21 @@ def api_account_payment_methods_add():
     expiry = (data.get("expiry") or "").strip()
     save_for_future = bool(data.get("save_for_future"))
 
+    # Card brand from IIN/BIN (first digits). Sources: Visa/Mastercard/Amex official IIN ranges.
     brand = "Card"
     if card_number.startswith("4"):
-        brand = "Visa"
+        brand = "Visa"  # Visa IIN starts with 4
     elif card_number[:2] in ("51", "52", "53", "54", "55"):
-        brand = "Mastercard"
-    elif card_number.startswith("3"):
-        brand = "Amex"
+        brand = "Mastercard"  # Traditional Mastercard 51-55
+    elif len(card_number) >= 4 and card_number[:4].isdigit():
+        try:
+            iin4 = int(card_number[:4])
+            if 2221 <= iin4 <= 2720:
+                brand = "Mastercard"  # Mastercard 2-series BIN range 2221-2720
+        except ValueError:
+            pass
+    if brand == "Card" and (card_number.startswith("34") or card_number.startswith("37")):
+        brand = "Amex"  # Amex IIN is 34 or 37 only (not all 3xx)
 
     last4 = card_number[-4:] if len(card_number) >= 4 else ""
     expiry_month = None
@@ -229,7 +231,7 @@ def api_account_payment_methods_add():
         return jsonify({"error": "Card number is invalid"}), 400
 
     try:
-        pm_id = add_payment_method(company["id"], brand=brand, last4=last4, expiry_month=expiry_month, expiry_year=expiry_year)
+        pm_id = Database.add_payment_method(company["id"], brand=brand, last4=last4, expiry_month=expiry_month, expiry_year=expiry_year)
         if pm_id:
             return jsonify({
                 "success": True,
@@ -254,7 +256,7 @@ def api_account_payment_methods_remove():
     if "user_id" not in session:
         return jsonify({"error": "Not logged in"}), 401
     user_id = session["user_id"]
-    company = get_company_for_user(user_id)
+    company = Database.get_company_for_user(user_id)
     if not company:
         return jsonify({"error": "No company associated with your account"}), 400
     data = request.get_json() or {}
@@ -264,7 +266,7 @@ def api_account_payment_methods_remove():
     except (TypeError, ValueError):
         return jsonify({"error": "Invalid payment method id"}), 400
     try:
-        removed = remove_payment_method(company["id"], method_id)
+        removed = Database.remove_payment_method(company["id"], method_id)
         if removed:
             return jsonify({"success": True})
         return jsonify({"error": "Payment method not found"}), 404
@@ -276,7 +278,7 @@ def api_account_payment_methods_remove():
 def api_account_payment_methods_set_default():
     if "user_id" not in session:
         return jsonify({"error": "Not logged in"}), 401
-    company = get_company_for_user(session["user_id"])
+    company = Database.get_company_for_user(session["user_id"])
     if not company:
         return jsonify({"error": "No company associated with your account"}), 400
     data = request.get_json() or {}
@@ -286,7 +288,7 @@ def api_account_payment_methods_set_default():
     except (TypeError, ValueError):
         return jsonify({"error": "Invalid payment method id"}), 400
     try:
-        updated = set_default_payment_method(company["id"], method_id)
+        updated = Database.set_default_payment_method(company["id"], method_id)
         if updated:
             return jsonify({"success": True})
         return jsonify({"error": "Payment method not found"}), 404
@@ -298,11 +300,11 @@ def api_account_payment_methods_set_default():
 def api_account_payment_methods_clear_default():
     if "user_id" not in session:
         return jsonify({"error": "Not logged in"}), 401
-    company = get_company_for_user(session["user_id"])
+    company = Database.get_company_for_user(session["user_id"])
     if not company:
         return jsonify({"error": "No company associated with your account"}), 400
     try:
-        clear_default_payment_method(company["id"])
+        Database.clear_default_payment_method(company["id"])
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -316,7 +318,7 @@ def api_account_subscription_upgrade():
             return jsonify({"error": "Not logged in"}), 401
         flash("Please sign in to change your plan.", "warning")
         return redirect(url_for("auth.signin"))
-    company = get_company_for_user(session["user_id"])
+    company = Database.get_company_for_user(session["user_id"])
     if not company:
         if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return jsonify({"error": "No company associated with your account."}), 400
@@ -331,12 +333,12 @@ def api_account_subscription_upgrade():
             return jsonify({"error": "Invalid plan selected."}), 400
         flash("Invalid plan selected.", "danger")
         return redirect(url_for("dashboard.dashboard") + "#account-subscriptions")
-    update_company_subscription(company["id"], subscription_id=subscription_id)
-    plan = get_plan_by_id(subscription_id)
+    Database.update_company_subscription(company["id"], subscription_id=subscription_id)
+    plan = Database.get_plan_by_id(subscription_id)
     if plan:
         plan_name = plan.get("plan_name") or "Plan"
         amount = plan.get("annual_cost") if plan.get("annual_cost") is not None else (plan.get("monthly_cost") or 0) * 12
-        add_invoice(company["id"], subscription_id, plan_name, amount, currency="USD", status="succeeded")
+        Database.add_invoice(company["id"], subscription_id, plan_name, amount, currency="USD", status="succeeded")
     if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest":
         return jsonify({"success": True, "message": "Your plan has been updated."}), 200
     flash("Your plan has been updated.", "success")

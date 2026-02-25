@@ -3,6 +3,7 @@ import pymysql
 import re
 from datetime import datetime
 from utils.config import get_db_config
+from utils.utils import Utils
 
 # Database configuration from core-config.yaml
 db_config = get_db_config()
@@ -23,6 +24,7 @@ def get_db():
 
 
 # Sample grants for dashboard / list building (seed when grants table is empty)
+# TODO: Remove these when Airtable integration is implemented
 SAMPLE_GRANTS = [
     ("Community Development Block Grant", "U.S. HUD", 75000, "Research & Development"),
     ("Small Business Innovation Research", "U.S. SBA", 150000, "Research & Development"),
@@ -68,7 +70,6 @@ def _seed_sample_grants(cursor):
 SUBSCRIPTION_ID_BASIC = 0
 SUBSCRIPTION_ID_SUCCESS = 1
 SUBSCRIPTION_ID_PREMIUM = 2
-
 
 class Database:
     """Static methods for all database operations. Use Database.method_name() from app."""
@@ -394,17 +395,6 @@ class Database:
                 return cursor.fetchone()
         finally:
             connection.close()
-
-    @staticmethod
-    def user_display_name(user):
-        """Return display name: first_name + last_name, or email if both empty."""
-        if not user:
-            return ""
-        fn = (user.get("first_name") or "").strip()
-        ln = (user.get("last_name") or "").strip()
-        if fn or ln:
-            return " ".join([fn, ln]).strip()
-        return user.get("email") or ""
 
     @staticmethod
     def link_oauth_to_user(user_id, provider, provider_id):
@@ -1003,213 +993,184 @@ class Database:
         except (TypeError, ValueError):
             return {}
 
+    # Password reset
+    @staticmethod
+    def create_reset_token(user_id, token, expires_at):
+        """Store a password reset token."""
+        connection = get_db()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO password_reset_tokens (user_id, token, expires_at)
+                    VALUES (%s, %s, %s)
+                """, (user_id, token, expires_at))
+                connection.commit()
+                return cursor.lastrowid
+        finally:
+            connection.close()
 
-def save_user_filter_settings(user_id, filters_dict):
-    """Save List Building filter settings for the user's company. filters_dict should be JSON-serializable. Returns 0 if user has no company."""
-    company = Database.get_company_for_user(user_id)
-    if not company:
-        return 0
-    connection = get_db()
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "UPDATE company SET list_building_filters = %s WHERE id = %s",
-                (json.dumps(filters_dict or {}), company["id"]),
-            )
-            connection.commit()
-            return cursor.rowcount
-    finally:
-        connection.close()
+    @staticmethod
+    def get_reset_token_user_id(token):
+        """Get user_id for a valid token; returns None if invalid or expired."""
+        connection = get_db()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    SELECT user_id FROM password_reset_tokens
+                    WHERE token = %s AND expires_at > NOW()
+                """, (token,))
+                row = cursor.fetchone()
+                return row["user_id"] if row else None
+        finally:
+            connection.close()
 
+    @staticmethod
+    def delete_reset_token(token):
+        """Remove a reset token (after use or expiry)."""
+        connection = get_db()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("DELETE FROM password_reset_tokens WHERE token = %s", (token,))
+                connection.commit()
+                return cursor.rowcount
+        finally:
+            connection.close()
 
-# Password reset
-def create_reset_token(user_id, token, expires_at):
-    """Store a password reset token."""
-    connection = get_db()
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute("""
-                INSERT INTO password_reset_tokens (user_id, token, expires_at)
-                VALUES (%s, %s, %s)
-            """, (user_id, token, expires_at))
-            connection.commit()
-            return cursor.lastrowid
-    finally:
-        connection.close()
+    @staticmethod
+    def update_user_password(user_id, password_hash):
+        """Update a user's password (for reset)."""
+        connection = get_db()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("UPDATE users SET password = %s WHERE id = %s", (password_hash, user_id))
+                connection.commit()
+                return cursor.rowcount
+        finally:
+            connection.close()
 
+    @staticmethod
+    def save_user_filter_settings(user_id, filters_dict):
+        """Save List Building filter settings for the user's company. filters_dict should be JSON-serializable. Returns 0 if user has no company."""
+        company = Database.get_company_for_user(user_id)
+        if not company:
+            return 0
+        connection = get_db()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "UPDATE company SET list_building_filters = %s WHERE id = %s",
+                    (json.dumps(filters_dict or {}), company["id"]),
+                )
+                connection.commit()
+                return cursor.rowcount
+        finally:
+            connection.close()
 
-def get_reset_token_user_id(token):
-    """Get user_id for a valid token; returns None if invalid or expired."""
-    connection = get_db()
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute("""
-                SELECT user_id FROM password_reset_tokens
-                WHERE token = %s AND expires_at > NOW()
-            """, (token,))
-            row = cursor.fetchone()
-            return row["user_id"] if row else None
-    finally:
-        connection.close()
+    @staticmethod
+    def get_all_grants():
+        """Get all grants."""
+        connection = get_db()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT * FROM grants")
+                return cursor.fetchall()
+        finally:
+            connection.close()
 
+    @staticmethod
+    def get_grant_by_id(grant_id):
+        """Get grant by ID."""
+        connection = get_db()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT * FROM grants WHERE id = %s", (grant_id,))
+                return cursor.fetchone()
+        finally:
+            connection.close()
 
-def delete_reset_token(token):
-    """Remove a reset token (after use or expiry)."""
-    connection = get_db()
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute("DELETE FROM password_reset_tokens WHERE token = %s", (token,))
-            connection.commit()
-            return cursor.rowcount
-    finally:
-        connection.close()
-
-
-def update_user_password(user_id, password_hash):
-    """Update a user's password (for reset)."""
-    connection = get_db()
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute("UPDATE users SET password = %s WHERE id = %s", (password_hash, user_id))
-            connection.commit()
-            return cursor.rowcount
-    finally:
-        connection.close()
-
-
-# Grant operations
-def get_all_grants():
-    """Get all grants."""
-    connection = get_db()
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT * FROM grants")
-            return cursor.fetchall()
-    finally:
-        connection.close()
-
-
-def get_grant_by_id(grant_id):
-    """Get grant by ID."""
-    connection = get_db()
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT * FROM grants WHERE id = %s", (grant_id,))
-            return cursor.fetchone()
-    finally:
-        connection.close()
-
-
-# User Grants operations
-def _current_year_quarter():
-    """Return (year, quarter) for current date. Quarter is 1-4."""
-    now = datetime.now()
-    return (now.year, (now.month - 1) // 3 + 1)
-
-
-def _parse_quarter_string(quarter_str):
-    """Parse '2026 Q2' to (year, quarter). Quarter 1-4. Returns (None, None) if invalid."""
-    if not quarter_str or not isinstance(quarter_str, str):
-        return (None, None)
-    s = quarter_str.strip()
-    m = re.match(r"(\d{4})\s*[Qq]\s*([1-4])$", s)
-    if m:
-        return (int(m.group(1)), int(m.group(2)))
-    return (None, None)
+    @staticmethod
+    def apply_for_grant(user_id, grant_id):
+        """Apply for a grant (insert with current year/quarter)."""
+        year, quarter = Utils.current_year_quarter()
+        connection = get_db()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO user_grants (user_id, grant_id, year, quarter, status)
+                    VALUES (%s, %s, %s, %s, 'Applied')
+                    ON DUPLICATE KEY UPDATE status = 'Applied', year = %s, quarter = %s, applied_date = CURRENT_TIMESTAMP
+                """, (user_id, grant_id, year, quarter, year, quarter))
+                connection.commit()
+                return cursor.lastrowid if cursor.lastrowid else True
+        finally:
+            connection.close()
 
 
-def apply_for_grant(user_id, grant_id):
-    """Apply for a grant (insert with current year/quarter)."""
-    year, quarter = _current_year_quarter()
-    connection = get_db()
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute("""
-                INSERT INTO user_grants (user_id, grant_id, year, quarter, status)
-                VALUES (%s, %s, %s, %s, 'Applied')
-                ON DUPLICATE KEY UPDATE status = 'Applied', year = %s, quarter = %s, applied_date = CURRENT_TIMESTAMP
-            """, (user_id, grant_id, year, quarter, year, quarter))
-            connection.commit()
-            return cursor.lastrowid if cursor.lastrowid else True
-    finally:
-        connection.close()
+    @staticmethod
+    def add_grant_to_portfolio(user_id, grant_id, quarter_str):
+        year, quarter = Utils.parse_quarter_string(quarter_str)
+        if year is None or quarter is None:
+            raise ValueError("Invalid quarter; expected e.g. '2026 Q2'")
+        connection = get_db()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO user_grants (user_id, grant_id, year, quarter, status)
+                    VALUES (%s, %s, %s, %s, 'Added')
+                    ON DUPLICATE KEY UPDATE year = %s, quarter = %s, status = 'Added', applied_date = CURRENT_TIMESTAMP
+                """, (user_id, grant_id, year, quarter, year, quarter))
+                connection.commit()
+                return cursor.lastrowid if cursor.lastrowid else True
+        finally:
+            connection.close()
 
 
-def add_grant_to_portfolio(user_id, grant_id, quarter_str):
-    """Add grant to portfolio. quarter_str e.g. '2026 Q2'; stored as year (int) and quarter (int 1-4)."""
-    year, quarter = _parse_quarter_string(quarter_str)
-    if year is None or quarter is None:
-        raise ValueError("Invalid quarter; expected e.g. '2026 Q2'")
-    connection = get_db()
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute("""
-                INSERT INTO user_grants (user_id, grant_id, year, quarter, status)
-                VALUES (%s, %s, %s, %s, 'Added')
-                ON DUPLICATE KEY UPDATE year = %s, quarter = %s, status = 'Added', applied_date = CURRENT_TIMESTAMP
-            """, (user_id, grant_id, year, quarter, year, quarter))
-            connection.commit()
-            return cursor.lastrowid if cursor.lastrowid else True
-    finally:
-        connection.close()
+    @staticmethod
+    def update_grant_status(user_id, grant_id, status):
+        """Update grant application status."""
+        connection = get_db()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("UPDATE user_grants SET status = %s WHERE user_id = %s AND grant_id = %s", (status, user_id, grant_id))
+                connection.commit()
+                return cursor.rowcount
+        finally:
+            connection.close()
 
 
-def update_grant_status(user_id, grant_id, status):
-    """Update grant application status."""
-    connection = get_db()
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute("""
-                UPDATE user_grants SET status = %s
-                WHERE user_id = %s AND grant_id = %s
-            """, (status, user_id, grant_id))
-            connection.commit()
-            return cursor.rowcount
-    finally:
-        connection.close()
+    @staticmethod
+    def remove_grant_from_portfolio(user_id, grant_id):
+        """Remove a grant from the user's portfolio."""
+        connection = get_db()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("DELETE FROM user_grants WHERE user_id = %s AND grant_id = %s", (user_id, grant_id))
+                connection.commit()
+                return cursor.rowcount
+        finally:
+            connection.close()
 
 
-def remove_grant_from_portfolio(user_id, grant_id):
-    """Remove a grant from the user's portfolio."""
-    connection = get_db()
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute("""
-                DELETE FROM user_grants
-                WHERE user_id = %s AND grant_id = %s
-            """, (user_id, grant_id))
-            connection.commit()
-            return cursor.rowcount
-    finally:
-        connection.close()
-
-
-def get_user_grants(user_id):
-    """Get grants applied by a user (includes portfolio with year and quarter)."""
-    connection = get_db()
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute("""
-                SELECT g.*, ug.status, ug.applied_date, ug.notes, ug.year, ug.quarter
-                FROM user_grants ug
-                JOIN grants g ON ug.grant_id = g.id
-                WHERE ug.user_id = %s
-                ORDER BY ug.applied_date DESC
-            """, (user_id,))
-            return cursor.fetchall()
-    finally:
-        connection.close()
+    @staticmethod
+    def get_user_grants(user_id):
+        """Get grants applied by a user (includes portfolio with year and quarter)."""
+        connection = get_db()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT g.*, ug.status, ug.applied_date, ug.notes, ug.year, ug.quarter FROM user_grants ug JOIN grants g ON ug.grant_id = g.id WHERE ug.user_id = %s ORDER BY ug.applied_date DESC", (user_id,))
+                return cursor.fetchall()
+        finally:
+            connection.close()
 
 
 # Module-level exports for app.py (Database class static methods)
-init_db = Database.init_db
+init_db = Database.init_db  
 create_user = Database.create_user
 get_user_by_email = Database.get_user_by_email
 get_user_by_oauth = Database.get_user_by_oauth
 create_oauth_user = Database.create_oauth_user
 get_user_by_id = Database.get_user_by_id
 user_display_name = Database.user_display_name
-_user_display_name = Database.user_display_name
 link_oauth_to_user = Database.link_oauth_to_user
 update_user_profile = Database.update_user_profile
 update_user_personal_info = Database.update_user_personal_info
@@ -1237,7 +1198,11 @@ remove_payment_method = Database.remove_payment_method
 add_invoice = Database.add_invoice
 get_billing_history = Database.get_billing_history
 get_last_invoice_amount_for_plan = Database.get_last_invoice_amount_for_plan
-# save_user_filter_settings, create_reset_token, get_reset_token_user_id, delete_reset_token,
-# update_user_password, get_all_grants, get_grant_by_id, apply_for_grant, add_grant_to_portfolio,
-# update_grant_status, remove_grant_from_portfolio, get_user_grants are module-level functions below
-
+save_user_filter_settings = Database.save_user_filter_settings
+get_all_grants = Database.get_all_grants
+get_grant_by_id = Database.get_grant_by_id
+apply_for_grant = Database.apply_for_grant
+add_grant_to_portfolio = Database.add_grant_to_portfolio
+update_grant_status = Database.update_grant_status
+remove_grant_from_portfolio = Database.remove_grant_from_portfolio
+get_user_grants = Database.get_user_grants
