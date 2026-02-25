@@ -7,34 +7,48 @@ from utils.database import (
     get_user_by_id, get_user_grants, get_all_grants, get_user_filter_settings, save_user_filter_settings,
     get_company_for_user, get_company_members, get_subscription_plan_name, get_subscription_max_members,
     get_trial_status, get_subscription_banner_status, get_billing_history, get_payment_methods,
-    get_company_subscription, _user_display_name,
+    get_company_subscription, get_last_invoice_amount_for_plan, _user_display_name,
 )
 
 dashboard_bp = Blueprint("dashboard", __name__, url_prefix="")
 
 
 def _current_plan_display(company_id):
-    """Build dict for Subscription Management: plan_display_name, annual_cost, monthly_cost, member_count, days_remaining, next_billing_date, subscription_id."""
+    """Build dict for Current Plan section.
+    Basic: no billing (billed_amount None). Paid plans: billed annually; billed_amount = last invoice amount or plan annual_cost; monthly_cost = current plan monthly."""
     sub = get_company_subscription(company_id) if company_id else None
     if not sub:
         return {"plan_display_name": "Basic Plan", "annual_cost": 0, "monthly_cost": 0, "member_count": 1,
-                "days_remaining": None, "next_billing_date": None, "subscription_id": 0}
+                "days_remaining": None, "next_billing_date": None, "subscription_id": 0, "billed_amount": None}
     plan_id = int(sub.get("subscription_id", 0))
     plan_names = {0: "Basic Plan", 1: "Success Plan", 2: "Premium Plan"}
     plan_display_name = plan_names.get(plan_id, "Custom Plan")
     monthly = float(sub.get("monthly_cost") or 0)
     annual = float(sub.get("annual_cost") or 0)
     member_count = int(sub.get("member_count") or 1)
+    # Amount the plan was billed at: last invoice for this plan, or plan's annual cost (paid plans only)
+    billed_amount = None
+    if plan_id != 0:
+        billed_amount = get_last_invoice_amount_for_plan(company_id, plan_id)
+        if billed_amount is None:
+            billed_amount = annual
     ends_at = sub.get("ends_at")
     now = datetime.now()
     days_remaining = None
     next_billing_date = None
-    if ends_at is not None:
+    if plan_id != 0 and ends_at is not None:
         try:
             end_dt = ends_at if hasattr(ends_at, "__le__") else datetime.fromisoformat(str(ends_at).replace("Z", "+00:00"))
             if end_dt > now:
                 days_remaining = (end_dt - now).days
             next_billing_date = end_dt.strftime("%b %d, %Y") if hasattr(end_dt, "strftime") else str(ends_at)[:10]
+        except (TypeError, ValueError):
+            pass
+    if plan_id == 0 and ends_at is not None:
+        try:
+            end_dt = ends_at if hasattr(ends_at, "__le__") else datetime.fromisoformat(str(ends_at).replace("Z", "+00:00"))
+            if end_dt > now:
+                days_remaining = (end_dt - now).days
         except (TypeError, ValueError):
             pass
     return {
@@ -45,6 +59,7 @@ def _current_plan_display(company_id):
         "days_remaining": days_remaining,
         "next_billing_date": next_billing_date,
         "subscription_id": plan_id,
+        "billed_amount": billed_amount,
     }
 
 
@@ -66,6 +81,47 @@ def _apply_grants_filters(grants_list, filters_dict):
             if want in (g.get("category") or "").lower() or want in (g.get("funding_for") or "").lower()
         ]
     return out
+
+
+@dashboard_bp.route("/api/dashboard/account-subscriptions-fragment")
+@login_required
+def account_subscriptions_fragment():
+    """Return JSON with account, account_team, and banner HTML fragments for immediate UI update without full refresh (e.g. after plan upgrade)."""
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Not logged in"}), 401
+    user = get_user_by_id(user_id)
+    company = get_company_for_user(user_id)
+    company_id = company["id"] if company else None
+    team_members = get_company_members(company_id) if company_id else []
+    plan_name = get_subscription_plan_name(company_id)
+    plan_max_members = get_subscription_max_members(company_id)
+    current_plan_display = _current_plan_display(company_id)
+    billing_history = get_billing_history(company_id) if company_id else []
+    payment_methods = get_payment_methods(company_id) if company_id else []
+    has_default_payment_method = any((pm or {}).get("is_default") for pm in (payment_methods or []))
+    subscription_banner = get_subscription_banner_status(company_id) if company_id else {"banner_type": "welcome", "days_left": None}
+    account_html = render_template(
+        "dashboard_account_fragment.html",
+        current_plan_display=current_plan_display,
+        billing_history=billing_history,
+        payment_methods=payment_methods,
+        has_default_payment_method=has_default_payment_method,
+        team_members=team_members,
+    )
+    account_team_html = render_template(
+        "dashboard_account_team_fragment.html",
+        plan_name=plan_name,
+        plan_max_members=plan_max_members,
+        team_members=team_members,
+        user=user or {},
+    )
+    banner_html = render_template(
+        "dashboard_banner_fragment.html",
+        subscription_banner=subscription_banner,
+        has_default_payment_method=has_default_payment_method,
+    )
+    return jsonify({"account": account_html, "account_team": account_team_html, "banner": banner_html})
 
 
 @dashboard_bp.route("/dashboard")

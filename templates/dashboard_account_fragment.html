@@ -1,0 +1,169 @@
+<h4 class="account-page-title mb-4">Manage Subscription</h4>
+
+<!-- Current Plan -->
+<div class="home-section account-section mb-4">
+    <div class="title-banner home-section-title-banner d-flex justify-content-between align-items-center">
+        <h5 class="home-section-title mb-0">Current Plan</h5>
+        <a href="{{ url_for('main.plans') }}" class="btn btn-gradient-yellow btn-sm">View all plans</a>
+    </div>
+    <div class="account-section-inner">
+        <div class="subscription-plan-hero mb-4">
+            <div class="subscription-plan-badge">{{ current_plan_display.plan_display_name }}</div>
+            {% if current_plan_display.subscription_id == 0 %}
+            <div class="subscription-plan-price">
+                <span class="subscription-plan-amount">No billing</span>
+            </div>
+            <p class="subscription-plan-billing-note text-muted">Basic plan is free. Upgrade to a paid plan for annual billing.</p>
+            {% else %}
+            <div class="subscription-plan-price">
+                <span class="subscription-plan-amount">C${{ "{:,.0f}".format(current_plan_display.billed_amount or 0) }}</span>
+                <span class="subscription-plan-period">/ year</span>
+            </div>
+            <p class="subscription-plan-billing-note">Curren plan rate: C${{ "{:,.0f}".format(current_plan_display.monthly_cost) }}/month. Billed annually</p>
+            {% endif %}
+        </div>
+        <div class="plan-stats-row row g-3 mb-4">
+            <div class="col-sm-6 col-md-4">
+                <div class="plan-stat-card plan-stat-days">
+                    <div class="plan-stat-icon"><i class="bi bi-calendar3"></i></div>
+                    <div class="plan-stat-value">{{ current_plan_display.days_remaining if current_plan_display.days_remaining is not none else '—' }}</div>
+                    <div class="plan-stat-label">Days remaining</div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-md-4">
+                <div class="plan-stat-card plan-stat-members">
+                    <div class="plan-stat-icon"><i class="bi bi-people"></i></div>
+                    <div class="plan-stat-value">{{ team_members|length }} <span class="plan-stat-sep">/</span> {{ current_plan_display.member_count }}</div>
+                    <div class="plan-stat-label">Team members</div>
+                </div>
+            </div>
+            {% if has_default_payment_method %}
+            <div id="next-billing-date-wrap" class="col-sm-6 col-md-4">
+            {% else %}
+            <div id="next-billing-date-wrap" class="col-sm-6 col-md-4 d-none">
+            {% endif %}
+                <div class="plan-stat-card plan-stat-billing">
+                    <div class="plan-stat-icon"><i class="bi bi-credit-card"></i></div>
+                    <div class="plan-stat-value plan-stat-value-sm">{{ current_plan_display.next_billing_date or '—' }}</div>
+                    <div class="plan-stat-label">Next billing date</div>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ url_for('main.home') }}#plans" class="btn btn-gradient-yellow btn-sm">View full feature list</a>
+            <a href="#subscription-upgrade-plan" class="btn btn-gradient-yellow btn-sm">Upgrade Plan</a>
+        </div>
+    </div>
+</div>
+
+<!-- Billing History -->
+<div class="home-section account-section mb-4">
+    <div class="title-banner home-section-title-banner">
+        <h5 class="home-section-title mb-0">Billing History</h5>
+    </div>
+    <div class="account-section-inner">
+        {% if billing_history %}
+        <div class="row g-2 billing-history-grid">
+            {% for item in billing_history %}
+            <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+                <div class="invoice-card">
+                    <div class="invoice-card-icon"><i class="bi bi-receipt"></i></div>
+                    <div class="invoice-card-plan">Plan: {{ item.plan_name or 'Plan' }}</div>
+                    <div class="invoice-card-date text-muted small">Bill date: {{ item.date or '—' }}</div>
+                    <div class="invoice-card-amount subscription-list-amount">Amount: {{ item.amount or '—' }} <span class="invoice-card-annual">/year</span></div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="subscription-empty-state">
+            <i class="bi bi-receipt subscription-empty-icon"></i>
+            <p class="subscription-empty-text mb-0">No invoices found.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Payment Methods -->
+<div class="home-section account-section mb-4">
+    <div class="title-banner home-section-title-banner d-flex justify-content-between align-items-center">
+        <h5 class="home-section-title mb-0">Payment Methods</h5>
+        <button type="button" class="btn btn-gradient-yellow btn-sm" data-bs-toggle="modal" data-bs-target="#addPaymentMethodModal" data-payment-context="add_method">Add payment method</button>
+    </div>
+    <div class="account-section-inner" id="payment-methods-section-inner">
+        {% if payment_methods %}
+        <div class="row g-3 payment-methods-grid">
+            {% for pm in payment_methods %}
+            <div class="col-6 col-md-4 col-lg-3" data-payment-method-id="{{ pm.payment_method_id }}">
+                <div class="payment-method-card">
+                    <label class="payment-method-default-label" title="Set as default payment method">
+                        <input type="checkbox" class="payment-method-set-default" data-method-id="{{ pm.payment_method_id }}" {% if pm.is_default %}checked{% endif %} aria-label="Default payment method">
+                        <span class="payment-method-default-text">Set default</span>
+                    </label>
+                    <div class="payment-method-card-row">
+                        <span class="payment-method-card-last4">•••• {{ pm.last4 or '****' }}</span>
+                        <span class="payment-method-card-expiry">{% if pm.expiry_month and pm.expiry_year %}{{ "%02d"|format(pm.expiry_month) }}/{{ pm.expiry_year }}{% else %}—{% endif %}</span>
+                    </div>
+                    <div class="payment-method-card-row">
+                        <span class="payment-method-card-brand">
+                            {% set brand_lower = (pm.brand or '')|lower %}
+                            {% if brand_lower == 'visa' %}<i class="fab fa-cc-visa payment-card-brand-icon" aria-hidden="true"></i>
+                            {% elif brand_lower == 'mastercard' %}<i class="fab fa-cc-mastercard payment-card-brand-icon" aria-hidden="true"></i>
+                            {% elif brand_lower in ('amex', 'american express') %}<i class="fab fa-cc-amex payment-card-brand-icon" aria-hidden="true"></i>
+                            {% elif brand_lower == 'discover' %}<i class="fab fa-cc-discover payment-card-brand-icon" aria-hidden="true"></i>
+                            {% elif brand_lower == 'diners club' %}<i class="fab fa-cc-diners-club payment-card-brand-icon" aria-hidden="true"></i>
+                            {% elif brand_lower == 'jcb' %}<i class="fab fa-cc-jcb payment-card-brand-icon" aria-hidden="true"></i>
+                            {% else %}<i class="bi bi-credit-card payment-card-brand-icon" aria-hidden="true"></i>
+                            {% endif %}
+                            <span class="payment-method-card-brand-name">{{ pm.brand or 'Card' }}</span>
+                        </span>
+                        <button type="button" class="btn btn-gradient-yellow btn-sm subscription-remove-method" data-method-id="{{ pm.payment_method_id }}">Remove</button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="subscription-empty-state">
+            <i class="bi bi-credit-card subscription-empty-icon"></i>
+            <p class="subscription-empty-text mb-0">No payment methods added.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Upgrade plan -->
+<div class="home-section account-section mb-4" id="subscription-upgrade-plan">
+    <div class="title-banner home-section-title-banner">
+        <h5 class="home-section-title mb-0">Upgrade Plan</h5>
+    </div>
+    <div class="account-section-inner">
+        <form id="form-subscription-upgrade" action="{{ url_for('account.api_account_subscription_upgrade') }}" method="post" class="d-none">
+            <input type="hidden" name="subscription_id" id="input-subscription-id" value="">
+        </form>
+        {% if current_plan_display.subscription_id >= 2 %}
+        <p class="subscription-section-desc mb-4">You already have the best plan.</p>
+        <div class="d-flex flex-wrap gap-3 align-items-center">
+            <a href="{{ url_for('main.contact', type='quote') }}" class="btn btn-gradient-yellow btn-sm">Request Custom Plan</a>
+        </div>
+        {% elif current_plan_display.subscription_id == 1 %}
+        <p class="subscription-section-desc mb-4">Switch to a higher plan for more features.</p>
+        <div class="d-flex flex-wrap gap-3 align-items-center">
+            <button type="button" class="btn btn-gradient-yellow btn-sm btn-switch-plan" data-plan-id="2" data-plan-name="Premium Plan">Switch to Premium Plan</button>
+            <a href="{{ url_for('main.contact', type='quote') }}" class="btn btn-gradient-yellow btn-sm">Request Custom Plan</a>
+        </div>
+        {% elif current_plan_display.subscription_id == 0 %}
+        <p class="subscription-section-desc mb-4">Upgrade from Basic to get more team members and features.</p>
+        <div class="d-flex flex-wrap gap-3 align-items-center">
+            <button type="button" class="btn btn-gradient-yellow btn-sm btn-switch-plan" data-plan-id="1" data-plan-name="Success Plan">Switch to Success Plan</button>
+            <button type="button" class="btn btn-gradient-yellow btn-sm btn-switch-plan" data-plan-id="2" data-plan-name="Premium Plan">Switch to Premium Plan</button>
+            <a href="{{ url_for('main.contact', type='quote') }}" class="btn btn-gradient-yellow btn-sm">Request Custom Plan</a>
+        </div>
+        {% else %}
+        <p class="subscription-section-desc mb-4">You are on a custom plan. Contact us to change.</p>
+        <div class="d-flex flex-wrap gap-3 align-items-center">
+            <a href="{{ url_for('main.contact', type='quote') }}" class="btn btn-gradient-yellow btn-sm">Request Custom Plan</a>
+        </div>
+        {% endif %}
+    </div>
+</div>

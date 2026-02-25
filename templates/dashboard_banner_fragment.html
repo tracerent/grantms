@@ -1,0 +1,25 @@
+{% if subscription_banner.banner_type == 'trial_ended' %}
+<div class="alert alert-warning alert-dismissible fade show mt-3 mb-0" role="alert">
+    Free trial ended. <a href="{{ url_for('dashboard.dashboard') }}#subscription-upgrade-plan" class="alert-link">Upgrade plan</a> to continue.
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% elif subscription_banner.banner_type == 'trial' and subscription_banner.days_left is not none %}
+<div class="alert alert-info alert-dismissible fade show mt-3 mb-0" role="alert">
+    {{ subscription_banner.days_left }} day{{ 's' if subscription_banner.days_left != 1 else '' }} left in your free trial. <a href="{{ url_for('dashboard.dashboard') }}#subscription-upgrade-plan" class="alert-link">Upgrade plan</a>.
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% elif subscription_banner.banner_type == 'expiring_soon' and subscription_banner.days_left is not none %}
+<div class="alert alert-warning alert-dismissible fade show mt-3 mb-0" role="alert">
+    {% if has_default_payment_method %}
+    Subscription will be renewed in {{ subscription_banner.days_left }} day{{ 's' if subscription_banner.days_left != 1 else '' }}.
+    {% else %}
+    Plan expiring in {{ subscription_banner.days_left }} day{{ 's' if subscription_banner.days_left != 1 else '' }}. <a href="{{ url_for('dashboard.dashboard') }}#subscription-upgrade-plan" class="alert-link">Upgrade plan</a>.
+    {% endif %}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% elif subscription_banner.banner_type == 'expired' %}
+<div class="alert alert-danger alert-dismissible fade show mt-3 mb-0" role="alert">
+    Plan expired. <a href="{{ url_for('dashboard.dashboard') }}#subscription-upgrade-plan" class="alert-link">Upgrade plan</a>.
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}

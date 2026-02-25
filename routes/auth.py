@@ -119,6 +119,7 @@ def oauth_callback(provider):
         else:
             try:
                 user_id = create_oauth_user(email, name, company_name, provider, provider_id)
+                create_company_for_user(user_id, company_name=company_name)
                 user = get_user_by_id(user_id)
                 session["user_id"] = user_id
                 session["username"] = user["email"]
@@ -224,6 +225,12 @@ def signup():
 
 @auth_bp.route("/signin", methods=["GET", "POST"])
 def signin():
+    if request.method == "GET" and session.get("user_id"):
+        # Already logged in: do not show signin page (avoids Dashboard tab flashing on signin then disappearing)
+        next_url = request.args.get("next", "").strip()
+        if next_url and next_url.startswith(request.host_url):
+            return redirect(next_url)
+        return redirect(url_for("dashboard.dashboard"))
     if request.method == "POST":
         email = request.form.get("email", "").strip()
         password = request.form.get("password", "").strip()

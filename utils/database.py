@@ -305,7 +305,7 @@ class Database:
                 try:
                     cursor.execute("""
                         INSERT INTO company_subscription (company_id, subscription_id, status, started_at, ends_at)
-                        SELECT c.id, 0, 'active', CURRENT_TIMESTAMP, DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 7 DAY)
+                        SELECT c.id, 0, 'active', CURRENT_TIMESTAMP, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL 7 DAY))
                         FROM company c
                         LEFT JOIN company_subscription cs ON cs.company_id = c.id
                         WHERE cs.id IS NULL
@@ -487,7 +487,8 @@ class Database:
 
     @staticmethod
     def create_company_for_user(user_id, company_name=None):
-        """Create a new company (with optional company_name), assign default plan, set user's company_id and is_primary=1. Returns the new company row."""
+        """Create a new company (with optional company_name), assign basic plan, set user's company_id and is_primary=1.
+        Basic plan: started_at = signup timestamp, ends_at = 7 days from signup. Returns the new company row."""
         connection = get_db()
         try:
             with connection.cursor() as cursor:
@@ -499,7 +500,7 @@ class Database:
                 company_id = cursor.lastrowid
                 cursor.execute(
                     """INSERT INTO company_subscription (company_id, subscription_id, status, started_at, ends_at)
-                       VALUES (%s, %s, 'active', CURRENT_TIMESTAMP, IF(%s = 0, DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 7 DAY), NULL))""",
+                       VALUES (%s, %s, 'active', CURRENT_TIMESTAMP, IF(%s = 0, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL 7 DAY)), NULL))""",
                     (company_id, Database.SUBSCRIPTION_ID_BASIC, Database.SUBSCRIPTION_ID_BASIC),
                 )
                 connection.commit()
@@ -638,7 +639,7 @@ class Database:
                     sub_id = subscription_id if subscription_id is not None else Database.SUBSCRIPTION_ID_BASIC
                     cursor.execute(
                         """INSERT INTO company_subscription (company_id, subscription_id, status, started_at, ends_at)
-                           VALUES (%s, %s, %s, CURRENT_TIMESTAMP, IF(%s = 0, DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 7 DAY), NULL))""",
+                           VALUES (%s, %s, %s, CURRENT_TIMESTAMP, IF(%s = 0, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL 7 DAY)), NULL))""",
                         (company_id, sub_id, status or "active", sub_id),
                     )
                 else:
@@ -647,7 +648,15 @@ class Database:
                         updates.append("subscription_id = %s")
                         args.append(subscription_id)
                         if int(subscription_id) != 0:
-                            updates.append("ends_at = NULL")
+                            # Paid plans: next billing date = one year later only if default payment method is set (annual billing)
+                            cursor.execute(
+                                "SELECT 1 FROM company_payment_method WHERE company_id = %s AND is_default = 1 AND deleted_at IS NULL LIMIT 1",
+                                (company_id,),
+                            )
+                            if cursor.fetchone():
+                                updates.append("ends_at = TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL 1 YEAR))")
+                            else:
+                                updates.append("ends_at = NULL")
                     if status is not None:
                         updates.append("status = %s")
                         args.append(status)
@@ -703,7 +712,8 @@ class Database:
 
     @staticmethod
     def add_payment_method(company_id, brand, last4, expiry_month=None, expiry_year=None, is_default=False):
-        """Safely store a payment method for a company. Only stores brand, last4, and optional expiry (no PAN/CVC)."""
+        """Safely store a payment method for a company. Only stores brand, last4, and optional expiry (no PAN/CVC).
+        If is_default and company is on a paid plan, sets next billing date to one year from now (annual billing)."""
         if not company_id or not brand or not last4:
             return None
         connection = get_db()
@@ -722,6 +732,14 @@ class Database:
                     """,
                     (company_id, brand[:32], str(last4)[-4:], expiry_month, expiry_year, 1 if is_default else 0),
                 )
+                # Paid plans: next billing date = one year from now when default payment method is set (annual billing)
+                if is_default:
+                    sub = Database.get_company_subscription(company_id)
+                    if sub and int(sub.get("subscription_id", 0)) not in (0, None):
+                        cursor.execute(
+                            "UPDATE company_subscription SET ends_at = TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL 1 YEAR)) WHERE company_id = %s",
+                            (company_id,),
+                        )
                 connection.commit()
                 return cursor.lastrowid
         finally:
@@ -750,7 +768,8 @@ class Database:
 
     @staticmethod
     def set_default_payment_method(company_id, method_id):
-        """Set one payment method as default; clear default on all others for this company."""
+        """Set one payment method as default; clear default on all others for this company.
+        For Success/Premium plans, sets next billing date to one year from now (annual billing)."""
         if not company_id or not method_id:
             return 0
         connection = get_db()
@@ -768,6 +787,13 @@ class Database:
                     """,
                     (method_id, company_id),
                 )
+                # Paid plans: next billing date = one year from now when default payment method is set (annual billing)
+                sub = Database.get_company_subscription(company_id)
+                if sub and int(sub.get("subscription_id", 0)) not in (0, None):
+                    cursor.execute(
+                        "UPDATE company_subscription SET ends_at = TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL 1 YEAR)) WHERE company_id = %s",
+                        (company_id,),
+                    )
                 connection.commit()
                 return cursor.rowcount
         finally:
@@ -869,6 +895,27 @@ class Database:
                         "amount": amount_str,
                     })
                 return out
+        finally:
+            connection.close()
+
+    @staticmethod
+    def get_last_invoice_amount_for_plan(company_id, subscription_id):
+        """Return the amount of the most recent invoice for this company and plan, or None."""
+        if not company_id or subscription_id is None:
+            return None
+        connection = get_db()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT amount FROM company_invoice
+                    WHERE company_id = %s AND subscription_id = %s
+                    ORDER BY created_at DESC LIMIT 1
+                    """,
+                    (company_id, subscription_id),
+                )
+                row = cursor.fetchone()
+                return float(row["amount"]) if row and row.get("amount") is not None else None
         finally:
             connection.close()
 
@@ -1189,6 +1236,7 @@ clear_default_payment_method = Database.clear_default_payment_method
 remove_payment_method = Database.remove_payment_method
 add_invoice = Database.add_invoice
 get_billing_history = Database.get_billing_history
+get_last_invoice_amount_for_plan = Database.get_last_invoice_amount_for_plan
 # save_user_filter_settings, create_reset_token, get_reset_token_user_id, delete_reset_token,
 # update_user_password, get_all_grants, get_grant_by_id, apply_for_grant, add_grant_to_portfolio,
 # update_grant_status, remove_grant_from_portfolio, get_user_grants are module-level functions below

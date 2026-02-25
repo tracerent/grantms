@@ -346,12 +346,14 @@
             });
         }
 
-        // Add team member form
-        var formAddMember = document.getElementById('form-add-member');
-        if (formAddMember) {
-            formAddMember.addEventListener('submit', function(e) {
+        // Add team member form (delegated so it works after fragment refresh)
+        var accountViewAddUser = document.getElementById('account-view-add-user');
+        if (accountViewAddUser) {
+            accountViewAddUser.addEventListener('submit', function(e) {
+                var form = e.target;
+                if (form.id !== 'form-add-member') return;
                 e.preventDefault();
-                var fd = new FormData(formAddMember);
+                var fd = new FormData(form);
                 var payload = {
                     first_name: (fd.get('first_name') || '').trim(),
                     last_name: (fd.get('last_name') || '').trim(),
@@ -362,7 +364,7 @@
                     alert('Email is required');
                     return;
                 }
-                var btn = document.getElementById('btn-add-member');
+                var btn = form.querySelector('#btn-add-member');
                 if (btn) btn.disabled = true;
                 fetch('/api/account/team/add', {
                     method: 'POST',
@@ -376,7 +378,7 @@
                         if (btn) btn.disabled = false;
                         return;
                     }
-                    formAddMember.reset();
+                    form.reset();
                     location.reload();
                 })
                 .catch(function(err) {
@@ -387,14 +389,15 @@
             });
         }
 
-        // Activate / Deactivate team member (any member can toggle others; cannot toggle self)
-        document.querySelectorAll('.team-toggle-active').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-                if (this.disabled) return;
-                var userId = this.getAttribute('data-user-id');
+        // Activate / Deactivate team member (delegated so it works after fragment refresh)
+        if (accountViewAddUser) {
+            accountViewAddUser.addEventListener('click', function(e) {
+                var btn = e.target && e.target.closest('.team-toggle-active');
+                if (!btn) return;
+                if (btn.disabled) return;
+                var userId = btn.getAttribute('data-user-id');
                 if (!userId) return;
-                var self = this;
-                self.disabled = true;
+                btn.disabled = true;
                 fetch('/api/account/team/toggle-active', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -404,7 +407,7 @@
                 .then(function(data) {
                     if (data.error) {
                         alert(data.error);
-                        self.disabled = false;
+                        btn.disabled = false;
                         return;
                     }
                     location.reload();
@@ -412,10 +415,10 @@
                 .catch(function(err) {
                     console.error(err);
                     alert('Failed to update status');
-                    self.disabled = false;
+                    btn.disabled = false;
                 });
             });
-        });
+        }
 
         // Apply tab/section from URL hash on load; support ?open=account-subscriptions for legacy links
         var params = new URLSearchParams(window.location.search);
@@ -521,6 +524,41 @@
                         alert(data.error);
                         return;
                     }
+                    // Upgrade flow: payment accepted by default; save card if requested, then upgrade via fetch and refresh fragment
+                    if (context === 'switch_plan') {
+                        if (data && data.success && data.saved && data.payment_method) {
+                            appendPaymentMethodCard(data.payment_method);
+                            if (typeof window.SUBSCRIPTION_PAYMENT_METHODS !== 'undefined') {
+                                window.SUBSCRIPTION_PAYMENT_METHODS.push(data.payment_method);
+                            }
+                        }
+                        form.reset();
+                        var formUpgrade = document.getElementById('form-subscription-upgrade');
+                        var inputPlanId = formUpgrade && document.getElementById('input-subscription-id');
+                        if (!formUpgrade || !inputPlanId || !inputPlanId.value) return;
+                        var fd = new FormData();
+                        fd.append('subscription_id', inputPlanId.value);
+                        var csrf = formUpgrade.querySelector('input[name=csrf_token]');
+                        if (csrf && csrf.value) fd.append('csrf_token', csrf.value);
+                        fetch(formUpgrade.action || '/api/account/subscription/upgrade', {
+                            method: 'POST',
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                            body: fd
+                        })
+                        .then(function(r) { return r.json().then(function(data) { return { ok: r.ok, data: data }; }); })
+                        .then(function(result) {
+                            if (result.ok && result.data && result.data.success) {
+                                refreshAccountSubscriptionsFragment(result.data.message || 'Your plan has been updated.');
+                            } else {
+                                alert(result.data && result.data.error ? result.data.error : 'Upgrade failed.');
+                            }
+                        })
+                        .catch(function(e) {
+                            console.error(e);
+                            alert('Could not upgrade plan.');
+                        });
+                        return;
+                    }
                     if (data && data.success && data.saved && data.payment_method) {
                         appendPaymentMethodCard(data.payment_method);
                         if (typeof window.SUBSCRIPTION_PAYMENT_METHODS !== 'undefined') {
@@ -539,33 +577,74 @@
             });
         }
 
-        // Switch plan: show payment modal (add details vs use existing / add new)
+        // Switch plan: show payment modal (add details vs use existing / add new). Use delegation so it works after fragment replace.
         var paymentMethods = (typeof window.SUBSCRIPTION_PAYMENT_METHODS !== 'undefined') ? window.SUBSCRIPTION_PAYMENT_METHODS : [];
         var switchPlanModal = document.getElementById('switchPlanPaymentModal');
         var switchPlanNoPayment = document.getElementById('switch-plan-prompt-no-payment');
         var switchPlanHasPayment = document.getElementById('switch-plan-prompt-has-payment');
         var planNameSpan = document.getElementById('switch-plan-modal-plan-name');
 
-        document.querySelectorAll('.btn-switch-plan').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-                var planId = this.getAttribute('data-plan-id');
-                var planName = this.getAttribute('data-plan-name') || 'plan';
-                var inputPlanId = document.getElementById('input-subscription-id');
-                if (inputPlanId) inputPlanId.value = planId || '';
-                if (planNameSpan) planNameSpan.textContent = planName;
-                if (switchPlanNoPayment) switchPlanNoPayment.classList.add('d-none');
-                if (switchPlanHasPayment) switchPlanHasPayment.classList.add('d-none');
-                if (paymentMethods && paymentMethods.length > 0) {
-                    if (switchPlanHasPayment) switchPlanHasPayment.classList.remove('d-none');
-                } else {
-                    if (switchPlanNoPayment) switchPlanNoPayment.classList.remove('d-none');
-                }
-                if (switchPlanModal && window.bootstrap) {
-                    var m = new window.bootstrap.Modal(switchPlanModal);
-                    m.show();
-                }
-            });
+        document.addEventListener('click', function(e) {
+            var btn = e.target && e.target.closest('.btn-switch-plan');
+            if (!btn) return;
+            var planId = btn.getAttribute('data-plan-id');
+            var planName = btn.getAttribute('data-plan-name') || 'plan';
+            var inputPlanId = document.getElementById('input-subscription-id');
+            if (inputPlanId) inputPlanId.value = planId || '';
+            if (planNameSpan) planNameSpan.textContent = planName;
+            if (switchPlanNoPayment) switchPlanNoPayment.classList.add('d-none');
+            if (switchPlanHasPayment) switchPlanHasPayment.classList.add('d-none');
+            var hasPaymentMethods = document.querySelectorAll('.payment-method-card').length > 0;
+            if (hasPaymentMethods) {
+                if (switchPlanHasPayment) switchPlanHasPayment.classList.remove('d-none');
+            } else {
+                if (switchPlanNoPayment) switchPlanNoPayment.classList.remove('d-none');
+            }
+            if (switchPlanModal && window.bootstrap) {
+                var m = new window.bootstrap.Modal(switchPlanModal);
+                m.show();
+            }
         });
+
+        function refreshAccountSubscriptionsFragment(successMessage) {
+            fetch('/api/dashboard/account-subscriptions-fragment', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r) {
+                    if (!r.ok) return Promise.reject(new Error('Could not refresh'));
+                    return r.json();
+                })
+                .then(function(data) {
+                    var accountContainer = document.getElementById('account-view-subscriptions');
+                    if (accountContainer && data.account) {
+                        accountContainer.innerHTML = data.account;
+                        if (successMessage) {
+                            var alertEl = document.createElement('div');
+                            alertEl.className = 'alert alert-success alert-dismissible fade show mb-3';
+                            alertEl.setAttribute('role', 'alert');
+                            alertEl.innerHTML = successMessage + '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+                            accountContainer.insertBefore(alertEl, accountContainer.firstChild);
+                            setTimeout(function() {
+                                if (alertEl.parentNode) {
+                                    var bsAlert = alertEl.classList.contains('show') && window.bootstrap && window.bootstrap.Alert;
+                                    if (bsAlert) try { new window.bootstrap.Alert(alertEl).close(); } catch (err) {}
+                                    else alertEl.remove();
+                                }
+                            }, 4000);
+                        }
+                    }
+                    var bannerWrap = document.getElementById('dashboard-subscription-banner-wrap');
+                    if (bannerWrap && data.banner !== undefined) {
+                        bannerWrap.innerHTML = data.banner;
+                    }
+                    var accountTeamContainer = document.getElementById('account-view-add-user');
+                    if (accountTeamContainer && data.account_team) {
+                        accountTeamContainer.innerHTML = data.account_team;
+                    }
+                })
+                .catch(function(err) {
+                    console.error(err);
+                    if (successMessage) alert(successMessage);
+                });
+        }
 
         var btnAddDetails = document.getElementById('switch-plan-btn-add-details');
         if (btnAddDetails) {
@@ -591,7 +670,29 @@
                     if (m) m.hide();
                 }
                 var formUpgrade = document.getElementById('form-subscription-upgrade');
-                if (formUpgrade) formUpgrade.submit();
+                var inputPlanId = formUpgrade && document.getElementById('input-subscription-id');
+                if (!formUpgrade || !inputPlanId || !inputPlanId.value) return;
+                var fd = new FormData();
+                fd.append('subscription_id', inputPlanId.value);
+                var csrf = formUpgrade.querySelector('input[name=csrf_token]');
+                if (csrf && csrf.value) fd.append('csrf_token', csrf.value);
+                fetch(formUpgrade.action || '/api/account/subscription/upgrade', {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body: fd
+                })
+                .then(function(r) { return r.json().then(function(data) { return { ok: r.ok, data: data }; }); })
+                .then(function(result) {
+                    if (result.ok && result.data && result.data.success) {
+                        refreshAccountSubscriptionsFragment(result.data.message || 'Your plan has been updated.');
+                    } else {
+                        alert(result.data && result.data.error ? result.data.error : 'Upgrade failed.');
+                    }
+                })
+                .catch(function(e) {
+                    console.error(e);
+                    alert('Could not upgrade plan.');
+                });
             });
         }
 
@@ -620,6 +721,38 @@
             });
         });
 
+        // Update profile form: submit via AJAX so page does not reload
+        var formUpdateProfile = document.getElementById('form-update-profile');
+        if (formUpdateProfile) {
+            formUpdateProfile.addEventListener('submit', function(e) {
+                e.preventDefault();
+                var form = this;
+                var modal = form.closest('.modal');
+                var fd = new FormData(form);
+                fetch(form.action || '/update-profile', {
+                    method: 'POST',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    body: fd
+                })
+                .then(function(r) { return r.json().then(function(data) { return { ok: r.ok, data: data }; }); })
+                .then(function(result) {
+                    if (result.ok && result.data && result.data.success) {
+                        if (modal && window.bootstrap) {
+                            var m = window.bootstrap.Modal.getInstance(modal);
+                            if (m) m.hide();
+                        }
+                        alert(result.data.message || 'Profile updated.');
+                    } else {
+                        alert(result.data && result.data.error ? result.data.error : 'Could not update profile.');
+                    }
+                })
+                .catch(function(err) {
+                    console.error(err);
+                    alert('Could not update profile.');
+                });
+            });
+        }
+
         // Set or clear default payment method — use delegation so dynamically added cards work
         document.addEventListener('change', function(e) {
             if (!e.target || !e.target.classList.contains('payment-method-set-default')) return;
@@ -635,11 +768,15 @@
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     if (data && data.success) {
-                        var wrap = document.getElementById('next-billing-date-wrap');
-                        if (wrap) wrap.classList.remove('d-none');
-                        document.querySelectorAll('.payment-method-set-default').forEach(function(cb) {
-                            if (cb !== self) cb.checked = false;
-                        });
+                        if (typeof refreshAccountSubscriptionsFragment === 'function') {
+                            refreshAccountSubscriptionsFragment();
+                        } else {
+                            var wrap = document.getElementById('next-billing-date-wrap');
+                            if (wrap) wrap.classList.remove('d-none');
+                            document.querySelectorAll('.payment-method-set-default').forEach(function(cb) {
+                                if (cb !== self) cb.checked = false;
+                            });
+                        }
                     } else if (data && data.error) {
                         alert(data.error);
                         self.checked = false;
@@ -658,8 +795,12 @@
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     if (data && data.success) {
-                        var wrap = document.getElementById('next-billing-date-wrap');
-                        if (wrap) wrap.classList.add('d-none');
+                        if (typeof refreshAccountSubscriptionsFragment === 'function') {
+                            refreshAccountSubscriptionsFragment();
+                        } else {
+                            var wrap = document.getElementById('next-billing-date-wrap');
+                            if (wrap) wrap.classList.add('d-none');
+                        }
                     } else if (data && data.error) {
                         alert(data.error);
                         self.checked = true;
@@ -720,16 +861,20 @@
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     if (data && data.success) {
-                        if (cardCol && cardCol.parentNode) {
-                            cardCol.remove();
-                            if (grid && grid.children.length === 0) {
-                                var emptyHtml = '<div class="subscription-empty-state">' +
-                                    '<i class="bi bi-credit-card subscription-empty-icon"></i>' +
-                                    '<p class="subscription-empty-text mb-0">No payment methods added.</p></div>';
-                                if (grid.parentNode) {
-                                    var wrap = document.createElement('div');
-                                    wrap.innerHTML = emptyHtml;
-                                    grid.parentNode.replaceChild(wrap.firstElementChild, grid);
+                        if (typeof refreshAccountSubscriptionsFragment === 'function') {
+                            refreshAccountSubscriptionsFragment('Payment method removed.');
+                        } else {
+                            if (cardCol && cardCol.parentNode) {
+                                cardCol.remove();
+                                if (grid && grid.children.length === 0) {
+                                    var emptyHtml = '<div class="subscription-empty-state">' +
+                                        '<i class="bi bi-credit-card subscription-empty-icon"></i>' +
+                                        '<p class="subscription-empty-text mb-0">No payment methods added.</p></div>';
+                                    if (grid.parentNode) {
+                                        var wrap = document.createElement('div');
+                                        wrap.innerHTML = emptyHtml;
+                                        grid.parentNode.replaceChild(wrap.firstElementChild, grid);
+                                    }
                                 }
                             }
                         }

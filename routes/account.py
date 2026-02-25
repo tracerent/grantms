@@ -44,13 +44,19 @@ def _date_val(data, key):
 @account_bp.route("/update-profile", methods=["POST"])
 def update_profile():
     if "user_id" not in session:
-        return jsonify({"error": "Not logged in"}), 401
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify({"error": "Not logged in"}), 401
+        return redirect(url_for("auth.signin"))
     user_id = session["user_id"]
     try:
         update_user_profile(user_id)
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify({"success": True, "message": "Profile updated"}), 200
         flash("Profile updated", "success")
         return redirect(url_for("dashboard.dashboard"))
     except Exception as e:
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify({"error": str(e)}), 500
         flash(f"Error: {str(e)}", "danger")
         return redirect(url_for("dashboard.dashboard"))
 
@@ -304,12 +310,16 @@ def api_account_payment_methods_clear_default():
 
 @account_bp.route("/api/account/subscription/upgrade", methods=["POST"])
 def api_account_subscription_upgrade():
-    """Upgrade company to Success (1) or Premium (2)."""
+    """Upgrade company to Success (1) or Premium (2). Returns JSON for XHR so the page can update without refresh."""
     if "user_id" not in session:
+        if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify({"error": "Not logged in"}), 401
         flash("Please sign in to change your plan.", "warning")
         return redirect(url_for("auth.signin"))
     company = get_company_for_user(session["user_id"])
     if not company:
+        if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify({"error": "No company associated with your account."}), 400
         flash("No company associated with your account.", "danger")
         return redirect(url_for("dashboard.dashboard"))
     try:
@@ -317,13 +327,17 @@ def api_account_subscription_upgrade():
     except (TypeError, ValueError):
         subscription_id = None
     if subscription_id not in (1, 2):
+        if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify({"error": "Invalid plan selected."}), 400
         flash("Invalid plan selected.", "danger")
         return redirect(url_for("dashboard.dashboard") + "#account-subscriptions")
     update_company_subscription(company["id"], subscription_id=subscription_id)
     plan = get_plan_by_id(subscription_id)
     if plan:
         plan_name = plan.get("plan_name") or "Plan"
-        amount = plan.get("monthly_cost") if plan.get("monthly_cost") is not None else 0
+        amount = plan.get("annual_cost") if plan.get("annual_cost") is not None else (plan.get("monthly_cost") or 0) * 12
         add_invoice(company["id"], subscription_id, plan_name, amount, currency="USD", status="succeeded")
+    if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return jsonify({"success": True, "message": "Your plan has been updated."}), 200
     flash("Your plan has been updated.", "success")
     return redirect(url_for("dashboard.dashboard") + "#account-subscriptions")
