@@ -114,8 +114,8 @@ def oauth_callback(provider):
                 flash(f"Welcome back! Your account is now linked to {provider.title()}.", "success")
         else:
             try:
-                user_id = Database.create_oauth_user(email, name, company_name, provider, provider_id)
-                Database.create_company_for_user(user_id, company_name=company_name)
+                user_id = Database.create_oauth_user(email, name, provider, provider_id)
+                Database.create_company_for_user(user_id, company_name=company_name)  # company name stored in company table only
                 user = Database.get_user_by_id(user_id)
                 session["user_id"] = user_id
                 session["username"] = user["email"]
@@ -195,16 +195,19 @@ def signup():
         company_name = request.form.get("company_name", "").strip()
         password = request.form.get("password", "").strip()
 
-        if not first_name or not email or not company_name or not password:
-            flash("First name, email, company name and password are required", "danger")
+        if not first_name or not email or not password:
+            flash("First name, email and password are required", "danger")
+            return redirect(url_for("auth.signup"))
+        if not company_name:
+            flash("Company name is required", "danger")
             return redirect(url_for("auth.signup"))
         if len(password) < 6:
             flash("Password must be at least 6 characters", "danger")
             return redirect(url_for("auth.signup"))
 
         try:
-            user_id = Database.create_user(first_name, last_name, email, generate_password_hash(password), company_name)
-            Database.create_company_for_user(user_id, company_name=company_name)
+            user_id = Database.create_user(first_name, last_name, email, generate_password_hash(password))
+            Database.create_company_for_user(user_id, company_name=company_name)  # company name stored in company table only
             user = Database.get_user_by_id(user_id)
             session["user_id"] = user_id
             session["username"] = user["email"]

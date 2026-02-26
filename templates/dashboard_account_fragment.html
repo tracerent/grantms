@@ -37,15 +37,14 @@
                     <div class="plan-stat-label">Team members</div>
                 </div>
             </div>
-            {% if has_default_payment_method %}
             <div id="next-billing-date-wrap" class="col-sm-6 col-md-4">
-            {% else %}
-            <div id="next-billing-date-wrap" class="col-sm-6 col-md-4 d-none">
-            {% endif %}
                 <div class="plan-stat-card plan-stat-billing">
                     <div class="plan-stat-icon"><i class="bi bi-credit-card"></i></div>
-                    <div class="plan-stat-value plan-stat-value-sm">{{ current_plan_display.next_billing_date or '—' }}</div>
+                    <div class="plan-stat-value plan-stat-value-sm">{% if has_default_payment_method %}{{ current_plan_display.next_billing_date or '—' }}{% else %}N/A{% endif %}</div>
                     <div class="plan-stat-label">Next billing date</div>
+                    {% if not has_default_payment_method %}
+                    <div class="plan-stat-autopay-off">Autopay not enabled</div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -68,7 +67,7 @@
             <div class="col-6 col-md-4 col-lg-3 col-xl-2">
                 <div class="invoice-card">
                     <div class="invoice-card-icon"><i class="bi bi-receipt"></i></div>
-                    <div class="invoice-card-plan">Plan: {{ item.plan_name or 'Plan' }}</div>
+                    <div class="invoice-card-plan">Plan: {{ (item.plan_name or 'Plan')|upper }}</div>
                     <div class="invoice-card-date text-muted small">Bill date: {{ item.date or '—' }}</div>
                     <div class="invoice-card-amount subscription-list-amount">Amount: {{ item.amount or '—' }} <span class="invoice-card-annual">/year</span></div>
                 </div>
@@ -98,7 +97,7 @@
                 <div class="payment-method-card">
                     <label class="payment-method-default-label" title="Set as default payment method">
                         <input type="checkbox" class="payment-method-set-default" data-method-id="{{ pm.payment_method_id }}" {% if pm.is_default %}checked{% endif %} aria-label="Default payment method">
-                        <span class="payment-method-default-text">Set default</span>
+                        <span class="payment-method-default-text">Set autopay method</span>
                     </label>
                     <div class="payment-method-card-row">
                         <span class="payment-method-card-last4">•••• {{ pm.last4 or '****' }}</span>
@@ -153,7 +152,7 @@
             <a href="{{ url_for('main.contact', type='quote') }}" class="btn btn-gradient-yellow btn-sm">Request Custom Plan</a>
         </div>
         {% elif current_plan_display.subscription_id == 0 %}
-        <p class="subscription-section-desc mb-4">Upgrade from Basic to get more team members and features.</p>
+        <p class="subscription-section-desc mb-4">Upgrade from Basic to add more team members and get more features.</p>
         <div class="d-flex flex-wrap gap-3 align-items-center">
             <button type="button" class="btn btn-gradient-yellow btn-sm btn-switch-plan" data-plan-id="1" data-plan-name="Success Plan">Switch to Success Plan</button>
             <button type="button" class="btn btn-gradient-yellow btn-sm btn-switch-plan" data-plan-id="2" data-plan-name="Premium Plan">Switch to Premium Plan</button>

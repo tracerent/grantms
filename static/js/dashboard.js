@@ -92,7 +92,7 @@
             '<div class="payment-method-card">' +
             '<label class="payment-method-default-label" title="Set as default payment method">' +
             '<input type="checkbox" class="payment-method-set-default" data-method-id="' + pmId + '" aria-label="Default payment method">' +
-            '<span class="payment-method-default-text">Set default</span></label>' +
+            '<span class="payment-method-default-text">Set autopay method</span></label>' +
             '<div class="payment-method-card-row">' +
             '<span class="payment-method-card-last4">•••• ' + last4 + '</span>' +
             '<span class="payment-method-card-expiry">' + expStr + '</span>' +
@@ -115,54 +115,59 @@
     }
 
     function initDashboard() {
-        document.querySelectorAll('.apply-grant').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-                var grantId = this.dataset.grantId;
-                fetch('/apply-grant', {
+        // Add Grants: request a new grant (submit to requested_grants)
+        var requestGrantForm = document.getElementById('request-grant-form');
+        if (requestGrantForm) {
+            requestGrantForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                var msgEl = document.getElementById('request-grant-message');
+                var submitBtn = document.getElementById('request-grant-submit');
+                var fundingOrg = (document.getElementById('request-grant-funding-org') && document.getElementById('request-grant-funding-org').value) ? document.getElementById('request-grant-funding-org').value.trim() : '';
+                var programName = (document.getElementById('request-grant-program-name') && document.getElementById('request-grant-program-name').value) ? document.getElementById('request-grant-program-name').value.trim() : '';
+                var description = (document.getElementById('request-grant-description') && document.getElementById('request-grant-description').value) ? document.getElementById('request-grant-description').value.trim() : '';
+                var link = (document.getElementById('request-grant-link') && document.getElementById('request-grant-link').value) ? document.getElementById('request-grant-link').value.trim() : '';
+                if (!msgEl) return;
+                msgEl.classList.add('d-none');
+                msgEl.classList.remove('alert-success', 'alert-danger');
+                if (!fundingOrg || !programName || !link) {
+                    msgEl.textContent = 'Please fill in Funding Organization, Program Name, and Link to Grant.';
+                    msgEl.classList.add('alert', 'alert-danger');
+                    msgEl.classList.remove('d-none');
+                    return;
+                }
+                if (submitBtn) submitBtn.disabled = true;
+                fetch('/api/dashboard/request-grant', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ grant_id: grantId })
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        funding_organization: fundingOrg,
+                        program_name: programName,
+                        funding_description: description || undefined,
+                        link_to_grant: link
+                    })
                 })
-                .then(function(r) { return r.json(); })
-                .then(function(data) {
-                    if (data.redirect && data.open_subscriptions) {
-                        window.location = (data.redirect.replace(/\?.*$/, '') || '/dashboard') + '#' + HASH_ACCOUNT_SUBSCRIPTIONS;
-                        return;
-                    }
-                    if (data.success) {
-                        alert('Grant application started!');
-                        location.reload();
-                    } else if (data.error) {
-                        alert(data.error);
-                    }
-                })
-                .catch(function(e) { console.error(e); });
-            });
-        });
-
-        document.querySelectorAll('.status-update').forEach(function(select) {
-            select.addEventListener('change', function() {
-                var grantId = this.dataset.grantId;
-                var status = this.value;
-                fetch('/update-grant-status', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ grant_id: grantId, status: status })
-                })
-                .then(function(r) { return r.json(); })
-                .catch(function(e) { console.error(e); });
-            });
-        });
-
-        var searchEl = document.getElementById('grantSearch');
-        if (searchEl) {
-            searchEl.addEventListener('keyup', function(e) {
-                var query = e.target.value.toLowerCase();
-                document.querySelectorAll('.grant-item').forEach(function(item) {
-                    var title = (item.dataset.title || '').toLowerCase();
-                    var desc = (item.dataset.desc || '').toLowerCase();
-                    item.style.display = (title.indexOf(query) !== -1 || desc.indexOf(query) !== -1) ? '' : 'none';
-                });
+                    .then(function(r) { return r.json().then(function(data) { return { status: r.status, data: data }; }); })
+                    .then(function(res) {
+                        if (res.data.error) {
+                            msgEl.textContent = res.data.error;
+                            msgEl.classList.add('alert', 'alert-danger');
+                        } else {
+                            msgEl.textContent = 'Request submitted. Our team will review and add the grant when approved.';
+                            msgEl.classList.add('alert', 'alert-success');
+                            requestGrantForm.reset();
+                        }
+                        msgEl.classList.remove('d-none');
+                    })
+                    .catch(function(err) {
+                        console.error(err);
+                        msgEl.textContent = 'Could not submit request. Please try again.';
+                        msgEl.classList.add('alert', 'alert-danger');
+                        msgEl.classList.remove('d-none');
+                    })
+                    .finally(function() {
+                        if (submitBtn) submitBtn.disabled = false;
+                    });
             });
         }
 
@@ -181,7 +186,7 @@
                         var matchesCount = document.getElementById('home-matches-count');
                         if (matchesCount) matchesCount.textContent = '[' + (data.all_grants ? data.all_grants.length : 0) + ']';
                         var portfolioCount = document.getElementById('home-portfolio-count');
-                        if (portfolioCount) portfolioCount.textContent = '[' + (data.user_grants ? data.user_grants.length : 0) + ']';
+                        if (portfolioCount) portfolioCount.textContent = '[' + (data.company_grants ? data.company_grants.length : 0) + ']';
 
                         var matchesUl = document.getElementById('home-matches-ul');
                         if (matchesUl) {
@@ -199,16 +204,16 @@
 
                         var portfolioUl = document.getElementById('home-portfolio-ul');
                         if (portfolioUl) {
-                            var list = data.user_grants || [];
+                            var list = data.company_grants || [];
                             var statusClass = { 'Approved': 'portfolio-status-approved', 'In Progress': 'portfolio-status-in-progress', 'Rejected': 'portfolio-status-rejected', 'Applied': 'portfolio-status-submitted', 'Awaiting Review': 'portfolio-status-submitted', 'Submitted': 'portfolio-status-submitted' };
                             if (list.length === 0) {
-                                portfolioUl.innerHTML = '<li class="list-group-item text-muted text-center py-4">No grant selected. Use <strong>List Building</strong> to add grants to your portfolio.</li>';
+                                portfolioUl.innerHTML = '<li class="list-group-item text-muted text-center py-4">No grants saved yet. Use <strong>List Building</strong> to save grants.</li>';
                             } else {
                                 portfolioUl.innerHTML = list.map(function(g) {
                                     var title = (g.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-                                    var status = g.status || 'Added';
+                                    var status = g.status || 'Saved';
                                     var cls = statusClass[status] || 'portfolio-status-added';
-                                    var label = status === 'Approved' ? 'Approved' : status === 'In Progress' ? 'In Progress' : status === 'Rejected' ? 'Rejected' : (status === 'Applied' || status === 'Awaiting Review' || status === 'Submitted') ? 'Submitted' : 'Added';
+                                    var label = (status === 'Approved') ? 'Approved' : (status === 'In Progress') ? 'In Progress' : (status === 'Rejected') ? 'Rejected' : (status === 'Applied' || status === 'Awaiting Review' || status === 'Submitted') ? 'Submitted' : 'Saved';
                                     return '<li class="list-group-item d-flex justify-content-between align-items-center"><span class="text-truncate flex-grow-1 me-2" title="' + title + '">' + title + '</span><span class="portfolio-status ' + cls + '">' + label + '</span></li>';
                                 }).join('');
                             }
@@ -358,10 +363,19 @@
                     first_name: (fd.get('first_name') || '').trim(),
                     last_name: (fd.get('last_name') || '').trim(),
                     email: (fd.get('email') || '').trim(),
-                    job_title: (fd.get('job_title') || '').trim()
+                    job_title: (fd.get('job_title') || '').trim(),
+                    password: (fd.get('password') || '').trim()
                 };
                 if (!payload.email) {
                     alert('Email is required');
+                    return;
+                }
+                if (!payload.password) {
+                    alert('Password is required');
+                    return;
+                }
+                if (payload.password.length < 6) {
+                    alert('Password must be at least 6 characters');
                     return;
                 }
                 var btn = form.querySelector('#btn-add-member');
@@ -431,7 +445,6 @@
                 window.location.hash = initialHash;
             }
         }
-        applyDashboardStateFromHash(initialHash || HASH_HOME);
 
         // When user uses back/forward or hash changes, sync the visible tab
         window.addEventListener('hashchange', function() {
@@ -459,15 +472,389 @@
             if (el.classList.contains('account-dropdown-item')) return;
             var tabId = el.id;
             if (tabId && el.getAttribute('data-bs-toggle') === 'tab') {
-                el.addEventListener('shown.bs.tab', function() {
+                el.addEventListener('shown.bs.tab', function(e) {
                     if (typeof history.replaceState === 'function') {
                         history.replaceState(null, '', window.location.pathname + (hash ? '#' + hash : ''));
                     } else {
                         window.location.hash = hash || HASH_HOME;
                     }
+                    if (hash === 'saved-grants' && typeof refreshSavedGrants === 'function') {
+                        refreshSavedGrants();
+                    }
+                    if (hash === 'store-contacts' && typeof refreshContactsTab === 'function') {
+                        refreshContactsTab();
+                    }
                 });
             }
         });
+
+        // Apply tab/section from URL hash on load *after* tab listeners are attached so refresh with #store-contacts loads data
+        applyDashboardStateFromHash(initialHash || HASH_HOME);
+        var appliedHash = (initialHash || HASH_HOME).trim();
+        if (appliedHash === 'store-contacts') {
+            setTimeout(function() {
+                if (typeof refreshContactsTab === 'function') refreshContactsTab();
+            }, 0);
+        }
+        if (appliedHash === 'saved-grants') {
+            setTimeout(function() {
+                if (typeof refreshSavedGrants === 'function') refreshSavedGrants();
+            }, 0);
+        }
+
+        // Saved Grants: Edit -> set status In Progress, redirect to grant detail page
+        document.addEventListener('click', function(e) {
+            var editBtn = e.target && e.target.closest('.timeline-grant-edit');
+            if (!editBtn) return;
+            e.preventDefault();
+            var grantId = editBtn.getAttribute('data-grant-id');
+            if (!grantId) return;
+            fetch('/update-grant-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ grant_id: parseInt(grantId, 10), status: 'In Progress' })
+            })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.error) { alert(data.error); return; }
+                    window.location.href = '/dashboard/grant/' + grantId;
+                })
+                .catch(function(err) { console.error(err); alert('Failed to update status'); });
+        });
+
+        // Saved Grants: Apply -> show confirm modal (with progress %), then set Submitted and redirect
+        window._grantApplyPendingId = null;
+        document.addEventListener('click', function(e) {
+            var applyBtn = e.target && e.target.closest('.timeline-grant-apply');
+            if (!applyBtn) return;
+            e.preventDefault();
+            var grantId = applyBtn.getAttribute('data-grant-id');
+            if (!grantId) return;
+            window._grantApplyPendingId = grantId;
+            var msgEl = document.getElementById('grant-apply-confirm-message');
+            if (msgEl) msgEl.textContent = 'Do you want to mark this grant as Submitted?';
+            fetch('/api/dashboard/grant/' + grantId + '/progress', { credentials: 'same-origin' })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    var pct = (data && data.progress_percent != null) ? data.progress_percent : 0;
+                    if (msgEl) {
+                        if (pct < 100) {
+                            msgEl.textContent = 'Progress is at ' + pct + '%. Do you confirm submission?';
+                        } else {
+                            msgEl.textContent = 'Do you want to mark this grant as Submitted?';
+                        }
+                    }
+                })
+                .catch(function() {})
+                .then(function() {
+                    var modal = document.getElementById('grantApplyConfirmModal');
+                    if (modal && typeof bootstrap !== 'undefined') {
+                        var m = new bootstrap.Modal(modal);
+                        m.show();
+                    }
+                });
+        });
+        var btnConfirmGrantApply = document.getElementById('btn-confirm-grant-apply');
+        if (btnConfirmGrantApply) {
+            btnConfirmGrantApply.addEventListener('click', function() {
+                var grantId = window._grantApplyPendingId;
+                if (!grantId) return;
+                fetch('/update-grant-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ grant_id: parseInt(grantId, 10), status: 'Submitted' })
+                })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (data.error) { alert(data.error); return; }
+                        window._grantApplyPendingId = null;
+                        var modalEl = document.getElementById('grantApplyConfirmModal');
+                        if (modalEl && typeof bootstrap !== 'undefined') {
+                            var m = bootstrap.Modal.getInstance(modalEl);
+                            if (m) m.hide();
+                        }
+                        window.location.href = '/dashboard/grant/' + grantId;
+                    })
+                    .catch(function(err) { console.error(err); alert('Failed to update status'); });
+            });
+        }
+
+        function escapeHtml(s) {
+            if (s == null || s === undefined) return '';
+            var t = String(s);
+            return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function buildTimelineGrantItem(g) {
+            var title = escapeHtml(g.title || '—');
+            var amount = (g.funding_amount != null && !isNaN(g.funding_amount)) ? Number(g.funding_amount).toLocaleString('en-US', { maximumFractionDigits: 0 }) : '0';
+            var deadline = escapeHtml(g.deadline || '—');
+            var planned = (g.planned && String(g.planned).trim()) ? escapeHtml(g.planned) : '';
+            var id = parseInt(g.id, 10) || 0;
+            var metaAmount = '<span class="timeline-grant-meta-item timeline-grant-meta-amount"><i class="bi bi-currency-dollar" aria-hidden="true"></i><span>$' + amount + '</span></span>';
+            var metaCloses = '<span class="timeline-grant-meta-item"><i class="bi bi-calendar3" aria-hidden="true"></i><span>Closes ' + deadline + '</span></span>';
+            var metaPlanned = planned ? '<span class="timeline-grant-meta-planned"><i class="bi bi-calendar-check" aria-hidden="true"></i><span>Planned ' + planned + '</span></span>' : '';
+            var metaHtml = '<div class="timeline-grant-meta">' + metaAmount + metaCloses + metaPlanned + '</div>';
+            return '<li class="account-list-item timeline-grant-item d-flex justify-content-between align-items-start">' +
+                '<div class="flex-grow-1 min-w-0">' +
+                '<div class="fw-bold text-truncate" title="' + title + '">' + title + '</div>' +
+                metaHtml +
+                '</div>' +
+                '<div class="d-flex gap-1 ms-2 flex-shrink-0 align-items-center">' +
+                '<button type="button" class="btn btn-link btn-sm p-0 border-0 account-edit-btn text-secondary timeline-grant-edit" data-grant-id="' + id + '" title="Edit" aria-label="Edit"><i class="bi bi-pencil"></i></button>' +
+                '<button type="button" class="btn btn-gradient-yellow btn-sm timeline-grant-apply" data-grant-id="' + id + '" title="Apply">Apply</button>' +
+                '</div></li>';
+        }
+
+        function refreshSavedGrants() {
+            var nextList = document.getElementById('timeline-next-6-list');
+            var afterList = document.getElementById('timeline-after-6-list');
+            if (!nextList || !afterList) return;
+            fetch('/api/dashboard/saved-grants')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.error) return;
+                    var next = data.timeline_next_6 || [];
+                    var after = data.timeline_after_6 || [];
+                    nextList.innerHTML = next.length
+                        ? next.map(buildTimelineGrantItem).join('')
+                        : '<li class="account-list-item text-muted small">No grants in the next 6 months.</li>';
+                    afterList.innerHTML = after.length
+                        ? after.map(buildTimelineGrantItem).join('')
+                        : '<li class="account-list-item text-muted small">No grants after this period.</li>';
+                })
+                .catch(function(e) { console.error(e); });
+        }
+
+        // --- Contacts tab ---
+        var contactsSelectedCategory = '';
+        var contactsSearchTimeout = null;
+
+        function refreshContactsTab() {
+            loadContactsCategoryCounts();
+            loadContactsList();
+        }
+
+        function loadContactsCategoryCounts() {
+            fetch('/api/dashboard/contacts/category-counts', { credentials: 'same-origin' })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.error) { alert(data.error); return; }
+                    var total = data.total != null ? data.total : 0;
+                    var counts = data.counts || {};
+                    var allEl = document.getElementById('contacts-count-all');
+                    if (allEl) allEl.textContent = total;
+                    document.querySelectorAll('[data-count-category]').forEach(function(el) {
+                        var cat = el.getAttribute('data-count-category');
+                        el.textContent = counts[cat] != null ? counts[cat] : 0;
+                    });
+                })
+                .catch(function(e) { console.error(e); alert('Could not load category counts.'); });
+        }
+
+        function loadContactsList() {
+            var category = contactsSelectedCategory || '';
+            var searchEl = document.getElementById('contacts-search');
+            var search = (searchEl && searchEl.value) ? searchEl.value.trim() : '';
+            var url = '/api/dashboard/contacts?category=' + encodeURIComponent(category) + '&search=' + encodeURIComponent(search);
+            fetch(url, { credentials: 'same-origin' })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.error) { alert(data.error); return; }
+                    var contacts = data.contacts || [];
+                    var tbody = document.getElementById('contacts-tbody');
+                    var emptyEl = document.getElementById('contacts-empty');
+                    var tableWrap = document.getElementById('contacts-table-wrap');
+                    var titleEl = document.getElementById('contacts-panel-title');
+                    if (titleEl) titleEl.textContent = category ? category : 'All Contacts';
+                    if (!tbody) return;
+                    function esc(s) { return (s == null || s === undefined) ? '' : String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+                    if (contacts.length === 0) {
+                        tbody.innerHTML = '';
+                        if (emptyEl) { emptyEl.classList.remove('d-none'); }
+                        if (tableWrap) { tableWrap.classList.add('d-none'); }
+                    } else {
+                        if (emptyEl) { emptyEl.classList.add('d-none'); }
+                        if (tableWrap) { tableWrap.classList.remove('d-none'); }
+                        tbody.innerHTML = contacts.map(function(c) {
+                            var id = parseInt(c.id, 10) || 0;
+                            var org = esc(c.organization);
+                            var name = esc(c.contact_name);
+                            var email = esc(c.email);
+                            var phone = esc(c.phone);
+                            var role = esc(c.role);
+                            return '<tr data-contact-id="' + id + '">' +
+                                '<td>' + org + '</td><td>' + name + '</td><td>' + email + '</td><td>' + phone + '</td><td>' + role + '</td>' +
+                                '<td class="text-end">' +
+                                '<button type="button" class="btn btn-link btn-sm p-0 me-2 contact-edit" data-contact-id="' + id + '" title="Edit" aria-label="Edit"><i class="bi bi-pencil"></i></button>' +
+                                '<button type="button" class="btn btn-link btn-sm p-0 text-danger contact-delete" data-contact-id="' + id + '" title="Delete" aria-label="Delete"><i class="bi bi-trash"></i></button>' +
+                                '</td></tr>';
+                        }).join('');
+                    }
+                })
+                .catch(function(e) { console.error(e); alert('Could not load contacts.'); });
+        }
+
+        function setContactsCategoryActive(category) {
+            document.querySelectorAll('#contacts-category-list .contacts-category-item').forEach(function(el) {
+                var cat = el.getAttribute('data-category') || '';
+                if (cat === category) {
+                    el.classList.add('active');
+                } else {
+                    el.classList.remove('active');
+                }
+            });
+        }
+
+        document.querySelectorAll('#contacts-category-list .contacts-category-item').forEach(function(el) {
+            el.style.cursor = 'pointer';
+            el.addEventListener('click', function() {
+                var cat = el.getAttribute('data-category') || '';
+                if (contactsSelectedCategory === cat) {
+                    contactsSelectedCategory = '';
+                } else {
+                    contactsSelectedCategory = cat;
+                }
+                setContactsCategoryActive(contactsSelectedCategory);
+                loadContactsList();
+            });
+        });
+
+        var contactsSearchEl = document.getElementById('contacts-search');
+        if (contactsSearchEl) {
+            contactsSearchEl.addEventListener('input', function() {
+                if (contactsSearchTimeout) clearTimeout(contactsSearchTimeout);
+                contactsSearchTimeout = setTimeout(function() {
+                    loadContactsList();
+                }, 250);
+            });
+        }
+
+        var contactsAddBtn = document.getElementById('contacts-add-btn');
+        if (contactsAddBtn) {
+            contactsAddBtn.addEventListener('click', function() {
+                document.getElementById('contactModalLabel').textContent = 'Add Contact';
+                document.getElementById('contact-form-id').value = '';
+                document.getElementById('contact-category').value = '';
+                document.getElementById('contact-organization').value = '';
+                document.getElementById('contact-name').value = '';
+                document.getElementById('contact-email').value = '';
+                document.getElementById('contact-phone').value = '';
+                document.getElementById('contact-role').value = '';
+                var modal = document.getElementById('contactModal');
+                if (modal && window.bootstrap) {
+                    var m = new window.bootstrap.Modal(modal);
+                    m.show();
+                }
+            });
+        }
+
+        document.getElementById('contact-form-save').addEventListener('click', function() {
+            var idEl = document.getElementById('contact-form-id');
+            var id = (idEl && idEl.value) ? idEl.value.trim() : '';
+            var category = document.getElementById('contact-category').value;
+            if (!category) { alert('Please select a category.'); return; }
+            var payload = {
+                category: category,
+                organization: document.getElementById('contact-organization').value,
+                contact_name: document.getElementById('contact-name').value,
+                email: document.getElementById('contact-email').value,
+                phone: document.getElementById('contact-phone').value,
+                role: document.getElementById('contact-role').value
+            };
+            var url = '/api/dashboard/contacts';
+            var method = 'POST';
+            if (id) {
+                url += '/' + id;
+                method = 'PUT';
+            }
+            fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                credentials: 'same-origin'
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.error) { alert(data.error); return; }
+                var modal = document.getElementById('contactModal');
+                if (modal && window.bootstrap) {
+                    var m = window.bootstrap.Modal.getInstance(modal);
+                    if (m) m.hide();
+                }
+                refreshContactsTab();
+            })
+            .catch(function(e) { console.error(e); alert('Could not save contact.'); });
+        });
+
+        document.addEventListener('click', function(e) {
+            var editBtn = e.target && e.target.closest('.contact-edit');
+            if (editBtn) {
+                e.preventDefault();
+                var id = editBtn.getAttribute('data-contact-id');
+                if (!id) return;
+                var url = '/api/dashboard/contacts?category=' + encodeURIComponent(contactsSelectedCategory) + '&search=';
+                fetch(url)
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        var contacts = data.contacts || [];
+                        var c = contacts.find(function(x) { return String(x.id) === String(id); });
+                        if (c) openContactEditModal(c);
+                    });
+                return;
+            }
+            var delBtn = e.target && e.target.closest('.contact-delete');
+            if (delBtn) {
+                e.preventDefault();
+                var id = delBtn.getAttribute('data-contact-id');
+                if (!id) return;
+                window._contactDeletePendingId = id;
+                var modal = document.getElementById('contactDeleteModal');
+                if (modal && window.bootstrap) {
+                    var m = new window.bootstrap.Modal(modal);
+                    m.show();
+                }
+            }
+        });
+
+        var btnConfirmContactDelete = document.getElementById('btn-confirm-contact-delete');
+        if (btnConfirmContactDelete) {
+            btnConfirmContactDelete.addEventListener('click', function() {
+                var id = window._contactDeletePendingId;
+                if (!id) return;
+                window._contactDeletePendingId = null;
+                var modal = document.getElementById('contactDeleteModal');
+                if (modal && window.bootstrap) {
+                    var m = window.bootstrap.Modal.getInstance(modal);
+                    if (m) m.hide();
+                }
+                fetch('/api/dashboard/contacts/' + id, { method: 'DELETE', credentials: 'same-origin' })
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (data.error) { alert(data.error); return; }
+                        refreshContactsTab();
+                    })
+                    .catch(function(e) { console.error(e); alert('Could not delete contact.'); });
+            });
+        }
+
+        function openContactEditModal(c) {
+            document.getElementById('contactModalLabel').textContent = 'Edit contact';
+            document.getElementById('contact-form-id').value = c.id || '';
+            document.getElementById('contact-category').value = c.category || '';
+            document.getElementById('contact-organization').value = c.organization || '';
+            document.getElementById('contact-name').value = c.contact_name || '';
+            document.getElementById('contact-email').value = c.email || '';
+            document.getElementById('contact-phone').value = c.phone || '';
+            document.getElementById('contact-role').value = c.role || '';
+            var modal = document.getElementById('contactModal');
+            if (modal && window.bootstrap) {
+                var m = new window.bootstrap.Modal(modal);
+                m.show();
+            }
+        }
 
         // When "Add payment method" button is clicked, set modal context first (capture phase) so "Save for future" is hidden
         document.querySelectorAll('[data-bs-target="#addPaymentMethodModal"]').forEach(function(btn) {
@@ -488,7 +875,7 @@
                     if (btn) btn.textContent = 'Add payment method';
                 } else {
                     if (saveWrap) saveWrap.classList.remove('d-none');
-                    if (btn) btn.textContent = 'Process payment';
+                    if (btn) btn.textContent = 'Process Payment';
                 }
             });
         }
@@ -607,7 +994,8 @@
         });
 
         function refreshAccountSubscriptionsFragment(successMessage) {
-            fetch('/api/dashboard/account-subscriptions-fragment', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            var url = '/api/dashboard/account-subscriptions-fragment?t=' + Date.now();
+            fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' }, cache: 'no-store' })
                 .then(function(r) {
                     if (!r.ok) return Promise.reject(new Error('Could not refresh'));
                     return r.json();
@@ -797,10 +1185,8 @@
                     if (data && data.success) {
                         if (typeof refreshAccountSubscriptionsFragment === 'function') {
                             refreshAccountSubscriptionsFragment();
-                        } else {
-                            var wrap = document.getElementById('next-billing-date-wrap');
-                            if (wrap) wrap.classList.add('d-none');
                         }
+                        // When no fragment refresh: next-billing-date-wrap stays visible with "AutoPay not enabled"
                     } else if (data && data.error) {
                         alert(data.error);
                         self.checked = true;

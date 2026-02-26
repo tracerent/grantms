@@ -7,7 +7,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="dashboard-page" data-grant-stats data-in-progress="{{ user_grants|length if user_grants else 0 }}">
+<div class="dashboard-page" data-grant-stats data-in-progress="{{ company_grants|length if company_grants else 0 }}">
     <div class="container-fluid">
         <!-- Header -->
         <div class="dashboard-header bg-light border-bottom py-4 mb-4">
@@ -15,7 +15,7 @@
                 <div class="row align-items-center justify-content-between">
                     <div class="col">
                         <h1 class="fw-bold mb-1">Welcome, {{ user_display_name or user.get('email') or 'User' }}!</h1>
-                        <p class="text-muted mb-0">{{ (user and user.get('company_name')) or 'Complete your profile' }}</p>
+                        <p class="text-muted mb-0">{{ (company and (company.company_name or company.operating_name or company.legal_entity_name)) or 'Complete your profile' }}</p>
                     </div>
                     <div class="col-auto">
                         <a href="{{ url_for('main.contact') }}" class="btn btn-gradient-yellow">Hire a Grant Writer</a>
@@ -76,11 +76,11 @@
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="saved-grants-tab" data-bs-toggle="tab" data-dashboard-hash="saved-grants"
-                            data-bs-target="#saved-grants" type="button" role="tab">Saved Grants ({{ favorites|length }})</button>
+                            data-bs-target="#saved-grants" type="button" role="tab">Saved Grants</button>
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="store-contacts-tab" data-bs-toggle="tab" data-dashboard-hash="store-contacts"
-                            data-bs-target="#store-contacts" type="button" role="tab">Store Your Contacts</button>
+                            data-bs-target="#store-contacts" type="button" role="tab">Contacts</button>
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="add-grants-tab" data-bs-toggle="tab" data-dashboard-hash="add-grants"
@@ -96,16 +96,16 @@
             <div class="tab-content">
                 <!-- Home Tab -->
                 <div class="tab-pane fade show active" id="home" role="tabpanel">
-                    {# Your Matches = all_grants filtered by saved List Building filters; Grant Portfolio from user_grants #}
-                    {% set display_portfolio = user_grants or [] %}
+                    {# Your Matches = all_grants filtered by saved List Building filters; Saved Grants from company_grants #}
+                    {% set display_portfolio = company_grants or [] %}
                     {% set ns = namespace(total=0) %}
-                    {% if user_grants and user_grants|length > 0 %}
-                        {% for g in user_grants %}
+                    {% if company_grants and company_grants|length > 0 %}
+                        {% for g in company_grants %}
                             {% set ns.total = ns.total + g.funding_amount|float %}
                         {% endfor %}
                     {% endif %}
                     <div class="home-value-banner mb-3 rounded">
-                        <span class="value-banner-label">Value of active grants : </span>
+                        <span class="value-banner-label">VALUE OF ACTIVE GRANTS: </span>
                         <span class="value-banner-amount" id="home-value-amount">${{ "{:,.0f}".format(ns.total) }}</span>
                     </div>
                     <div class="row g-4">
@@ -113,7 +113,7 @@
                             <div class="title-banner home-section-title-banner">
                                 <h5 class="home-section-title mb-0">Your Matches <span class="title-banner-count" id="home-matches-count">[{{ display_matches|length }}]</span></h5>
                             </div>
-                            <p class="home-section-desc text-muted mb-3">Using these filtered grants you can build your grant portfolio. Adjust List Building filters at any time to view new opportunities.</p>
+                            <p class="home-section-desc text-muted mb-3">Using these filtered grants you can save grants to your list. Adjust List Building filters at any time to view new opportunities.</p>
                             <div class="home-section-list-scroll" id="home-matches-list-scroll">
                                 <ul class="list-group list-group-flush home-matches-list list-group-separated" id="home-matches-ul">
                                     {% for grant in display_matches %}
@@ -130,9 +130,9 @@
                         </div>
                         <div class="col-lg-6 home-section">
                             <div class="title-banner home-section-title-banner">
-                                <h5 class="home-section-title mb-0">Grant Portfolio <span class="title-banner-count" id="home-portfolio-count">[{{ display_portfolio|length }}]</span></h5>
+                                <h5 class="home-section-title mb-0">Saved Grants <span class="title-banner-count" id="home-portfolio-count">[{{ display_portfolio|length }}]</span></h5>
                             </div>
-                            <p class="home-section-desc text-muted mb-3">Grants that you have added to your portfolio.</p>
+                            <p class="home-section-desc text-muted mb-3">Grants that you have saved.</p>
                             <div class="home-section-list-scroll" id="home-portfolio-list-scroll">
                                 <ul class="list-group list-group-flush home-portfolio-list list-group-separated" id="home-portfolio-ul">
                                     {% for grant in display_portfolio %}
@@ -147,12 +147,12 @@
                                         {% elif grant['status'] in ('Applied', 'Awaiting Review', 'Submitted') %}
                                         <span class="portfolio-status portfolio-status-submitted">Submitted</span>
                                         {% else %}
-                                        <span class="portfolio-status portfolio-status-added">Added</span>
+                                        <span class="portfolio-status portfolio-status-added">Saved</span>
                                         {% endif %}
                                     </li>
                                     {% endfor %}
                                     {% if not display_portfolio %}
-                                    <li class="list-group-item text-muted text-center py-4">No grant selected. Use <strong>List Building</strong> to add grants to your portfolio.</li>
+                                    <li class="list-group-item text-muted text-center py-4">No grants saved yet. Use <strong>List Building</strong> to save grants.</li>
                                     {% endif %}
                                 </ul>
                             </div>
@@ -163,7 +163,7 @@
                 <!-- List Building Tab -->
                 <div class="tab-pane fade" id="list-building" role="tabpanel">
                     <h4 class="mb-3">List Building</h4>
-                    <p class="text-muted mb-4">Build and manage your grant lists here. Sort, search, and filter to find grants, then add them to your Grant Portfolio.</p>
+                    <p class="text-muted mb-4">Build and manage your grant lists here. Sort, search, and filter to find grants, then save them to your Saved Grants list.</p>
 
                     <!-- Sort (left) | Search (right) -->
                     <div class="row align-items-center mb-3">
@@ -311,7 +311,7 @@
                                             </div>
                                             <div class="col-12">
                                                 <button type="submit" class="btn btn-gradient-yellow btn-sm">Save</button>
-                                                <button type="button" class="btn btn-outline-secondary btn-sm ms-2 account-cancel-edit" data-section="personal">Cancel</button>
+                                                <button type="button" class="btn btn-gradient-gray btn-sm ms-2 account-cancel-edit" data-section="personal">Cancel</button>
                                             </div>
                                         </div>
                                     </form>
@@ -358,7 +358,7 @@
                                             <div class="col-12"><span class="account-subsection-title">Company Identification</span></div>
                                             <div class="col-md-6"><div class="account-edit-field"><label class="form-label small text-muted">Legal Entity Name</label><input type="text" class="form-control" name="legal_entity_name" value="{{ company.legal_entity_name or '' if company else '' }}"></div></div>
                                             <div class="col-md-6"><div class="account-edit-field"><label class="form-label small text-muted">Operating Name</label><input type="text" class="form-control" name="operating_name" value="{{ company.operating_name or '' if company else '' }}"></div></div>
-                                            <div class="col-md-6"><div class="account-edit-field"><label class="form-label small text-muted">Company Name</label><input type="text" class="form-control" name="company_name" value="{{ company.company_name or (user.get('company_name') or '') if company else (user.get('company_name') or '') }}"></div></div>
+                                            <div class="col-md-6"><div class="account-edit-field"><label class="form-label small text-muted">Company Name</label><input type="text" class="form-control" name="company_name" value="{{ (company.company_name or company.operating_name or company.legal_entity_name or '') if company else '' }}"></div></div>
                                             <div class="col-12 mt-3"><span class="account-subsection-title">Registration numbers</span></div>
                                             <div class="col-md-6"><div class="account-edit-field"><label class="form-label small text-muted">Provincial Corporate Access Number</label><input type="text" class="form-control" name="provincial_corporate_access_number" value="{{ company.provincial_corporate_access_number or '' if company else '' }}"></div></div>
                                             <div class="col-md-6"><div class="account-edit-field"><label class="form-label small text-muted">Workers Compensation Number</label><input type="text" class="form-control" name="workers_compensation_number" value="{{ company.workers_compensation_number or '' if company else '' }}"></div></div>
@@ -377,7 +377,7 @@
                                             <div class="col-md-6"><div class="account-edit-field"><label class="form-label small text-muted">Website</label><input type="url" class="form-control" name="website" value="{{ company.website or '' if company else '' }}"></div></div>
                                             <div class="col-12">
                                                 <button type="submit" class="btn btn-gradient-yellow btn-sm">Save</button>
-                                                <button type="button" class="btn btn-outline-secondary btn-sm ms-2 account-cancel-edit" data-section="company">Cancel</button>
+                                                <button type="button" class="btn btn-gradient-gray btn-sm ms-2 account-cancel-edit" data-section="company">Cancel</button>
                                             </div>
                                         </div>
                                     </form>
@@ -399,7 +399,7 @@
                                     <div class="account-section-inner">
                                         <ul class="list-unstyled mb-0" id="team-members-list">
                                             {% for m in team_members %}
-                                            <li class="account-list-item d-flex justify-content-between align-items-center {% if m.get('is_active') != 1 %}opacity-75{% endif %}">
+                                            <li class="account-list-item d-flex justify-content-between align-items-center">
                                                 <div>
                                                     <span class="fw-semibold">{{ m.get('first_name') or '—' }} {{ m.get('last_name') or '' }}</span>
                                                     {% if m.get('is_active') != 1 %}<span class="text-muted small ms-1">(Inactive)</span>{% endif %}
@@ -407,7 +407,7 @@
                                                 </div>
                                                 <div>
                                                     {% if m.get('id') != user.get('id') %}
-                                                    <button type="button" class="btn btn-sm btn-outline-secondary team-toggle-active" data-user-id="{{ m.id }}" data-is-active="{{ 1 if m.get('is_active') == 1 else 0 }}">
+                                                    <button type="button" class="btn btn-sm btn-gradient-yellow team-toggle-active" data-user-id="{{ m.id }}" data-is-active="{{ 1 if m.get('is_active') == 1 else 0 }}">
                                                         {% if m.get('is_active') == 1 %}Deactivate{% else %}Activate{% endif %}
                                                     </button>
                                                     {% endif %}
@@ -444,6 +444,10 @@
                                                 <div class="col-md-6">
                                                     <label class="form-label small text-muted">Job Title</label>
                                                     <input type="text" class="form-control" name="job_title" placeholder="Job title" {% if team_members|length >= plan_max_members %}disabled{% endif %}>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label small text-muted">Password</label>
+                                                    <input type="password" class="form-control" name="password" placeholder="Password (min 6 characters)" {% if team_members|length >= plan_max_members %}disabled{% else %}required{% endif %} minlength="6" autocomplete="new-password">
                                                 </div>
                                                 <div class="col-12">
                                                     {% if team_members|length >= plan_max_members %}
@@ -500,15 +504,14 @@
                                             <div class="plan-stat-label">Team members</div>
                                         </div>
                                     </div>
-                                    {% if has_default_payment_method %}
                                     <div id="next-billing-date-wrap" class="col-sm-6 col-md-4">
-                                    {% else %}
-                                    <div id="next-billing-date-wrap" class="col-sm-6 col-md-4 d-none">
-                                    {% endif %}
                                         <div class="plan-stat-card plan-stat-billing">
                                             <div class="plan-stat-icon"><i class="bi bi-credit-card"></i></div>
-                                            <div class="plan-stat-value plan-stat-value-sm">{{ current_plan_display.next_billing_date or '—' }}</div>
+                                            <div class="plan-stat-value plan-stat-value-sm">{% if has_default_payment_method %}{{ current_plan_display.next_billing_date or '—' }}{% else %}NA{% endif %}</div>
                                             <div class="plan-stat-label">Next billing date</div>
+                                            {% if not has_default_payment_method %}
+                                            <div class="plan-stat-autopay-off">Autopay not enabled</div>
+                                            {% endif %}
                                         </div>
                                     </div>
                                 </div>
@@ -531,7 +534,7 @@
                                     <div class="col-6 col-md-4 col-lg-3 col-xl-2">
                                         <div class="invoice-card">
                                             <div class="invoice-card-icon"><i class="bi bi-receipt"></i></div>
-                                            <div class="invoice-card-plan">Plan: {{ item.plan_name or 'Plan' }}</div>
+                                            <div class="invoice-card-plan">Plan: {{ (item.plan_name or 'Plan')|upper }}</div>
                                             <div class="invoice-card-date text-muted small">Bill date: {{ item.date or '—' }}</div>
                                             <div class="invoice-card-amount subscription-list-amount">Amount: {{ item.amount or '—' }} <span class="invoice-card-annual">/year</span></div>
                                         </div>
@@ -561,7 +564,7 @@
                                         <div class="payment-method-card">
                                             <label class="payment-method-default-label" title="Set as default payment method">
                                                 <input type="checkbox" class="payment-method-set-default" data-method-id="{{ pm.payment_method_id }}" {% if pm.is_default %}checked{% endif %} aria-label="Default payment method">
-                                                <span class="payment-method-default-text">Set default</span>
+                                                <span class="payment-method-default-text">Set autopay method</span>
                                             </label>
                                             <div class="payment-method-card-row">
                                                 <span class="payment-method-card-last4">•••• {{ pm.last4 or '****' }}</span>
@@ -635,171 +638,390 @@
 
                 <!-- Saved Grants Tab -->
                 <div class="tab-pane fade" id="saved-grants" role="tabpanel">
-                    {% if favorites %}
-                        <div class="row g-4">
-                            {% for grant in favorites %}
-                                <div class="col-md-6 col-lg-4">
-                                    <div class="grant-card favorite-card">
-                                        <div class="grant-header">
-                                            <h5 class="grant-title">{{ grant['title'] }}</h5>
-                                            <i class="fas fa-star text-warning"></i>
-                                        </div>
-                                        <p class="text-muted small">{{ grant['agency'] }}</p>
-                                        <p class="grant-description">{{ grant['description'][:100] }}...</p>
-                                        
-                                        <div class="grant-details mb-3">
-                                            <div class="detail-item">
-                                                <span class="label">Funding:</span>
-                                                <span class="value">${{ "{:,.0f}".format(grant['funding_amount']) }}</span>
-                                            </div>
-                                            <div class="detail-item">
-                                                <span class="label">Deadline:</span>
-                                                <span class="value">{{ grant['deadline'] }}</span>
-                                            </div>
-                                        </div>
-
-                                        <div class="d-flex gap-2">
-                                            <button class="btn btn-sm btn-primary flex-grow-1 apply-grant" data-grant-id="{{ grant['id'] }}">
-                                                Apply Now
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            {% endfor %}
-                        </div>
-                    {% else %}
-                        <div class="alert alert-info">
-                            <h5>No saved grants</h5>
-                            <p>Use List Building to add grants to your portfolio.</p>
-                        </div>
-                    {% endif %}
-                </div>
-
-                <!-- Add Grants Tab -->
-                <div class="tab-pane fade" id="add-grants" role="tabpanel">
-                    <div class="mb-3">
-                        <input type="text" class="form-control" id="grantSearch" placeholder="Search grants by title or description...">
+                    <h4 class="mb-4 fw-bold">Grant Timeline Overview</h4>
+                    <div class="d-flex flex-wrap gap-2 mb-4">
+                        <button type="button" class="btn btn-gradient-yellow btn-sm" aria-label="Download CSV (coming soon)">Download CSV</button>
+                        <button type="button" class="btn btn-gradient-yellow btn-sm" aria-label="Download PDF (coming soon)">Download PDF</button>
                     </div>
-                    <div class="row g-4" id="grantsContainer">
-                        {% for grant in all_grants %}
-                            <div class="col-md-6 col-lg-4 grant-item" data-title="{{ grant['title']|lower }}" data-desc="{{ grant['description']|lower }}">
-                                <div class="grant-card">
-                                    <div class="grant-header">
-                                        <h5 class="grant-title">{{ grant['title'] }}</h5>
-                                        {% set is_applied = grant['id'] in user_grants|map(attribute='id')|list %}
-                                    </div>
-                                    <p class="text-muted small">{{ grant['agency'] }}</p>
-                                    <p class="grant-description">{{ grant['description'][:100] }}...</p>
-                                    
-                                    <div class="grant-details mb-3">
-                                        <div class="detail-item">
-                                            <span class="label">Funding:</span>
-                                            <span class="value">${{ "{:,.0f}".format(grant['funding_amount']) }}</span>
-                                        </div>
-                                        <div class="detail-item">
-                                            <span class="label">Deadline:</span>
-                                            <span class="value">{{ grant['deadline'] }}</span>
-                                        </div>
-                                        <div class="detail-item">
-                                            <span class="label">Category:</span>
-                                            <span class="value">{{ grant['category'] }}</span>
-                                        </div>
-                                    </div>
-
-                                    <div class="d-flex gap-2">
-                                        {% if is_applied %}
-                                            <button class="btn btn-sm btn-success flex-grow-1" disabled>Applied</button>
-                                        {% else %}
-                                            <button class="btn btn-sm btn-primary flex-grow-1 apply-grant" data-grant-id="{{ grant['id'] }}">
-                                                Apply Now
-                                            </button>
+                    <div class="home-section account-section">
+                        <div class="row g-4">
+                            <div class="col-lg-6">
+                                <div class="title-banner home-section-title-banner">
+                                    <h6 class="home-section-title mb-0">Next 6 Months</h6>
+                                </div>
+                                <div class="account-section-inner">
+                                    <ul id="timeline-next-6-list" class="list-unstyled mb-0 timeline-grant-list">
+                                        {% for g in timeline_next_6 %}
+                                        <li class="account-list-item timeline-grant-item d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1 min-w-0">
+                                                <div class="fw-bold text-truncate" title="{{ g.title or '' }}">{{ g.title or '—' }}</div>
+                                                <div class="timeline-grant-meta">
+                                                    <span class="timeline-grant-meta-item timeline-grant-meta-amount"><i class="bi bi-currency-dollar" aria-hidden="true"></i><span>${{ "{:,.0f}".format(g.funding_amount or 0) }}</span></span>
+                                                    <span class="timeline-grant-meta-item"><i class="bi bi-calendar3" aria-hidden="true"></i><span>Closes {{ g.deadline or '—' }}</span></span>
+                                                    {% if g.year is not none and g.quarter is not none %}<span class="timeline-grant-meta-planned"><i class="bi bi-calendar-check" aria-hidden="true"></i><span>Planned {{ g.year }} Q{{ g.quarter }}</span></span>{% endif %}
+                                                </div>
+                                            </div>
+                                            <div class="d-flex gap-1 ms-2 flex-shrink-0 align-items-center">
+                                                <button type="button" class="btn btn-link btn-sm p-0 border-0 account-edit-btn text-secondary timeline-grant-edit" data-grant-id="{{ g.id }}" title="Edit" aria-label="Edit"><i class="bi bi-pencil"></i></button>
+                                                <button type="button" class="btn btn-gradient-yellow btn-sm timeline-grant-apply" data-grant-id="{{ g.id }}" title="Apply">Apply</button>
+                                            </div>
+                                        </li>
+                                        {% endfor %}
+                                        {% if not timeline_next_6 %}
+                                        <li class="account-list-item text-muted small">No grants in the next 6 months.</li>
                                         {% endif %}
-                                    </div>
+                                    </ul>
                                 </div>
                             </div>
-                        {% endfor %}
+                            <div class="col-lg-6">
+                                <div class="title-banner home-section-title-banner">
+                                    <h6 class="home-section-title mb-0">After 6 Months</h6>
+                                </div>
+                                <div class="account-section-inner">
+                                    <ul id="timeline-after-6-list" class="list-unstyled mb-0 timeline-grant-list">
+                                        {% for g in timeline_after_6 %}
+                                        <li class="account-list-item timeline-grant-item d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1 min-w-0">
+                                                <div class="fw-bold text-truncate" title="{{ g.title or '' }}">{{ g.title or '—' }}</div>
+                                                <div class="timeline-grant-meta">
+                                                    <span class="timeline-grant-meta-item timeline-grant-meta-amount"><i class="bi bi-currency-dollar" aria-hidden="true"></i><span>${{ "{:,.0f}".format(g.funding_amount or 0) }}</span></span>
+                                                    <span class="timeline-grant-meta-item"><i class="bi bi-calendar3" aria-hidden="true"></i><span>Closes {{ g.deadline or '—' }}</span></span>
+                                                    {% if g.year is not none and g.quarter is not none %}<span class="timeline-grant-meta-planned"><i class="bi bi-calendar-check" aria-hidden="true"></i><span>Planned {{ g.year }} Q{{ g.quarter }}</span></span>{% endif %}
+                                                </div>
+                                            </div>
+                                            <div class="d-flex gap-1 ms-2 flex-shrink-0 align-items-center">
+                                                <button type="button" class="btn btn-link btn-sm p-0 border-0 account-edit-btn text-secondary timeline-grant-edit" data-grant-id="{{ g.id }}" title="Edit" aria-label="Edit"><i class="bi bi-pencil"></i></button>
+                                                <button type="button" class="btn btn-gradient-yellow btn-sm timeline-grant-apply" data-grant-id="{{ g.id }}" title="Apply">Apply</button>
+                                            </div>
+                                        </li>
+                                        {% endfor %}
+                                        {% if not timeline_after_6 %}
+                                        <li class="account-list-item text-muted small">No grants after this period.</li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Application Tab (My Applications) -->
-                <div class="tab-pane fade" id="application" role="tabpanel">
-                    {% if user_grants %}
-                        <div class="row g-4">
-                            {% for grant in user_grants %}
-                                <div class="col-md-6 col-lg-4">
-                                    <div class="grant-card">
-                                        <div class="grant-header">
-                                            <h5 class="grant-title">{{ grant['title'] }}</h5>
-                                            <span class="status-badge status-{{ grant['status']|lower|replace(' ', '-') }}">
-                                                {{ grant['status'] }}
-                                            </span>
-                                        </div>
-                                        <p class="text-muted small">{{ grant['agency'] }}</p>
-                                        <p class="grant-description">{{ grant['description'][:100] }}...</p>
-                                        
-                                        <div class="grant-details mb-3">
-                                            <div class="detail-item">
-                                                <span class="label">Funding:</span>
-                                                <span class="value">${{ "{:,.0f}".format(grant['funding_amount']) }}</span>
-                                            </div>
-                                            <div class="detail-item">
-                                                <span class="label">Deadline:</span>
-                                                <span class="value">{{ grant['deadline'] }}</span>
-                                            </div>
-                                            <div class="detail-item">
-                                                <span class="label">Applied:</span>
-                                                <span class="value">{{ grant['applied_date'].strftime('%Y-%m-%d') }}</span>
-                                            </div>
-                                        </div>
+                <!-- Contacts Tab -->
+                <div class="tab-pane fade" id="store-contacts" role="tabpanel">
+                    <h4 class="mb-4 fw-bold">All Contacts</h4>
+                    <div class="row g-4">
+                        <div class="col-md-4 col-lg-3 contacts-sidebar">
+                            <div class="home-section account-section h-100">
+                                <div class="account-section-inner">
+                                    <button type="button" class="btn btn-gradient-yellow btn-sm w-100 mb-3" id="contacts-add-btn">+ Add Contact</button>
+                                    <div class="mb-3">
+                                        <input type="text" class="form-control" id="contacts-search" placeholder="Search contacts..." aria-label="Search contacts">
+                                    </div>
+                                    <div class="title-banner home-section-title-banner mt-3">
+                                        <h6 class="home-section-title mb-0">Categories</h6>
+                                    </div>
+                                    <ul class="list-unstyled mb-0 mt-2" id="contacts-category-list">
+                                        <li class="account-list-item contacts-category-item active" data-category="">
+                                            <span class="contacts-category-name">All Contacts</span>
+                                            <span class="contacts-category-count" id="contacts-count-all">0</span>
+                                        </li>
+                                        <li class="account-list-item contacts-category-item" data-category="Grant Advisors">
+                                            <span class="contacts-category-name">Grant Advisors</span>
+                                            <span class="contacts-category-count" data-count-category="Grant Advisors">0</span>
+                                        </li>
+                                        <li class="account-list-item contacts-category-item" data-category="Bank / Loan Contact">
+                                            <span class="contacts-category-name">Bank / Loan Contact</span>
+                                            <span class="contacts-category-count" data-count-category="Bank / Loan Contact">0</span>
+                                        </li>
+                                        <li class="account-list-item contacts-category-item" data-category="Investors">
+                                            <span class="contacts-category-name">Investors</span>
+                                            <span class="contacts-category-count" data-count-category="Investors">0</span>
+                                        </li>
+                                        <li class="account-list-item contacts-category-item" data-category="SR & ED Advisors">
+                                            <span class="contacts-category-name">SR & ED Advisors</span>
+                                            <span class="contacts-category-count" data-count-category="SR & ED Advisors">0</span>
+                                        </li>
+                                        <li class="account-list-item contacts-category-item" data-category="Grant Consultants / Writers">
+                                            <span class="contacts-category-name">Grant Consultants / Writers</span>
+                                            <span class="contacts-category-count" data-count-category="Grant Consultants / Writers">0</span>
+                                        </li>
+                                        <li class="account-list-item contacts-category-item" data-category="Other Contacts">
+                                            <span class="contacts-category-name">Other Contacts</span>
+                                            <span class="contacts-category-count" data-count-category="Other Contacts">0</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-8 col-lg-9 contacts-main">
+                            <div class="home-section account-section">
+                                <div class="title-banner home-section-title-banner">
+                                    <h5 class="home-section-title mb-0" id="contacts-panel-title">All Contacts</h5>
+                                </div>
+                                <div class="account-section-inner">
+                                    <div class="table-responsive d-none" id="contacts-table-wrap">
+                                        <table class="table table-hover align-middle" id="contacts-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Organization</th>
+                                                    <th>Contact Name</th>
+                                                    <th>Email</th>
+                                                    <th>Phone</th>
+                                                    <th>Role</th>
+                                                    <th class="text-end">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="contacts-tbody">
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div id="contacts-empty" class="text-muted text-center py-4">No contacts to display.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                                        <div class="mb-3">
-                                            <select class="form-select form-select-sm status-update" 
-                                                    data-grant-id="{{ grant['id'] }}">
-                                                <option value="Applied" {% if grant['status'] == 'Applied' %}selected{% endif %}>Applied</option>
-                                                <option value="In Progress" {% if grant['status'] == 'In Progress' %}selected{% endif %}>In Progress</option>
-                                                <option value="Awaiting Review" {% if grant['status'] == 'Awaiting Review' %}selected{% endif %}>Awaiting Review</option>
-                                                <option value="Approved" {% if grant['status'] == 'Approved' %}selected{% endif %}>Approved</option>
-                                                <option value="Rejected" {% if grant['status'] == 'Rejected' %}selected{% endif %}>Rejected</option>
-                                            </select>
+                <!-- Add Grants Tab: request a new grant for admin to review -->
+                <div class="tab-pane fade" id="add-grants" role="tabpanel">
+                    <div class="home-section account-section">
+                        <div class="title-banner home-section-title-banner">
+                            <h5 class="home-section-title mb-0">Add New Grant</h5>
+                        </div>
+                        <div class="account-section-inner">
+                            <p class="home-section-desc text-muted mb-4">If the grant you’re looking for isn’t available in our system, please add it here. Our admin team will look into your request and add it to the system.</p>
+                            <form id="request-grant-form" class="request-grant-form">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="account-edit-field">
+                                            <label for="request-grant-funding-org" class="form-label small text-muted">Funding Organization <span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control" id="request-grant-funding-org" name="funding_organization" required
+                                                   placeholder="e.g. National Science Foundation" maxlength="255" autocomplete="organization">
                                         </div>
-
-                                        <div class="d-flex gap-2">
-                                            <a href="{{ grant['url'] }}" target="_blank" class="btn btn-sm btn-primary flex-grow-1">
-                                                View Grant
-                                            </a>
-                                            <button class="btn btn-sm btn-outline-secondary remove-grant" data-grant-id="{{ grant['id'] }}">
-                                                Remove
-                                            </button>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="account-edit-field">
+                                            <label for="request-grant-program-name" class="form-label small text-muted">Program Name <span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control" id="request-grant-program-name" name="program_name" required
+                                                   placeholder="e.g. Small Business Innovation Research" maxlength="255">
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="account-edit-field">
+                                            <label for="request-grant-description" class="form-label small text-muted">Funding Description <span class="text-muted">(optional)</span></label>
+                                            <textarea class="form-control" id="request-grant-description" name="funding_description" rows="4"
+                                                      placeholder="Brief description of the grant, eligibility, or use of funds..."></textarea>
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="account-edit-field">
+                                            <label for="request-grant-link" class="form-label small text-muted">Link to Grant <span class="text-danger">*</span></label>
+                                            <input type="url" class="form-control" id="request-grant-link" name="link_to_grant" required
+                                                   placeholder="https://...">
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <div id="request-grant-message" class="d-none"></div>
+                                        <div class="text-end">
+                                            <button type="submit" class="btn btn-gradient-yellow btn-sm" id="request-grant-submit">Submit Request</button>
                                         </div>
                                     </div>
                                 </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Application Tab: KPIs, status tabs, accordion lists -->
+                <div class="tab-pane fade" id="application" role="tabpanel">
+                    <div class="application-kpis plan-stats-row row g-3 mb-4">
+                        <div class="col-6 col-md-3">
+                            <div class="plan-stat-card application-kpi-card application-kpi-in-progress">
+                                <div class="app-kpi-left"><span class="plan-stat-value">{{ app_kpis.in_progress.count }}</span></div>
+                                <div class="app-kpi-right">
+                                    <div class="app-kpi-right-row"><span class="plan-stat-icon"><i class="bi bi-pencil-square" aria-hidden="true"></i></span><span class="plan-stat-label">In progress</span></div>
+                                    <div class="app-kpi-right-row"><span class="plan-stat-amount-label">Potential:</span> <span class="plan-stat-amount-value">${{ "{:,.0f}".format(app_kpis.in_progress.amount) }}</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="plan-stat-card application-kpi-card application-kpi-awaiting">
+                                <div class="app-kpi-left"><span class="plan-stat-value">{{ app_kpis.awaiting.count }}</span></div>
+                                <div class="app-kpi-right">
+                                    <div class="app-kpi-right-row"><span class="plan-stat-icon"><i class="bi bi-clock-history" aria-hidden="true"></i></span><span class="plan-stat-label">Awaiting</span></div>
+                                    <div class="app-kpi-right-row"><span class="plan-stat-amount-label">Potential:</span> <span class="plan-stat-amount-value">${{ "{:,.0f}".format(app_kpis.awaiting.amount) }}</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="plan-stat-card application-kpi-card application-kpi-approved">
+                                <div class="app-kpi-left"><span class="plan-stat-value">{{ app_kpis.approved.count }}</span></div>
+                                <div class="app-kpi-right">
+                                    <div class="app-kpi-right-row"><span class="plan-stat-icon"><i class="bi bi-check-circle" aria-hidden="true"></i></span><span class="plan-stat-label">Approved</span></div>
+                                    <div class="app-kpi-right-row"><span class="plan-stat-amount-label">Potential:</span> <span class="plan-stat-amount-value">${{ "{:,.0f}".format(app_kpis.approved.amount) }}</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="plan-stat-card application-kpi-card application-kpi-rejected">
+                                <div class="app-kpi-left"><span class="plan-stat-value">{{ app_kpis.rejected.count }}</span></div>
+                                <div class="app-kpi-right">
+                                    <div class="app-kpi-right-row"><span class="plan-stat-icon"><i class="bi bi-x-circle" aria-hidden="true"></i></span><span class="plan-stat-label">Rejected</span></div>
+                                    <div class="app-kpi-right-row"><span class="plan-stat-amount-label">Potential:</span> <span class="plan-stat-amount-value">${{ "{:,.0f}".format(app_kpis.rejected.amount) }}</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="home-section account-section">
+                        <ul class="nav nav-tabs nav-tabs-application mb-0" id="applicationStatusTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="app-tab-in-progress" data-bs-toggle="tab" data-bs-target="#app-pane-in-progress" type="button" role="tab">In progress <span class="app-tab-count">({{ app_in_progress|length }})</span></button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="app-tab-awaiting" data-bs-toggle="tab" data-bs-target="#app-pane-awaiting" type="button" role="tab">Awaiting <span class="app-tab-count">({{ app_awaiting|length }})</span></button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="app-tab-approved" data-bs-toggle="tab" data-bs-target="#app-pane-approved" type="button" role="tab">Approved <span class="app-tab-count">({{ app_approved|length }})</span></button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="app-tab-rejected" data-bs-toggle="tab" data-bs-target="#app-pane-rejected" type="button" role="tab">Rejected <span class="app-tab-count">({{ app_rejected|length }})</span></button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="app-tab-saved" data-bs-toggle="tab" data-bs-target="#app-pane-saved" type="button" role="tab">Saved <span class="app-tab-count">({{ app_saved|length }})</span></button>
+                            </li>
+                        </ul>
+                        <div class="tab-content account-section-inner border-top-0" id="applicationStatusPanes">
+                            {% for status_key, status_label, grant_list in [
+                                ('in-progress', 'In progress', app_in_progress),
+                                ('awaiting', 'Awaiting', app_awaiting),
+                                ('approved', 'Approved', app_approved),
+                                ('rejected', 'Rejected', app_rejected),
+                                ('saved', 'Saved', app_saved)
+                            ] %}
+                            <div class="tab-pane fade {{ 'show active' if loop.first else '' }}" id="app-pane-{{ status_key }}" role="tabpanel">
+                                <div class="accordion application-accordion" id="app-accordion-{{ status_key }}">
+                                    {% for g in grant_list %}
+                                    <div class="accordion-item app-accordion-item">
+                                        <h2 class="accordion-header d-flex align-items-stretch">
+                                            <button class="accordion-button collapsed app-accordion-btn flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#app-acc-{{ status_key }}-{{ g.id }}" aria-expanded="false" aria-controls="app-acc-{{ status_key }}-{{ g.id }}">
+                                                <div class="d-flex flex-wrap align-items-center w-100 gap-2 gap-md-3 me-2">
+                                                    <span class="app-accordion-title">{{ g.title or '—' }}</span>
+                                                    <span class="app-accordion-meta text-muted small">{{ g.agency or '—' }}</span>
+                                                    <span class="app-accordion-amount fw-semibold">${{ "{:,.0f}".format(g.funding_amount or 0) }}</span>
+                                                    <span class="app-accordion-progress small">Progress: —</span>
+                                                    <span class="app-accordion-due small text-muted">Due {{ g.deadline or '—' }}</span>
+                                                </div>
+                                            </button>
+                                            <a href="{{ url_for('dashboard.grant_detail', grant_id=g.id) }}" class="btn btn-gradient-yellow btn-sm app-accordion-view align-self-center me-2">View</a>
+                                        </h2>
+                                        <div id="app-acc-{{ status_key }}-{{ g.id }}" class="accordion-collapse collapse" data-bs-parent="#app-accordion-{{ status_key }}">
+                                            <div class="accordion-body app-accordion-body">
+                                                <div class="app-accordion-detail">
+                                                    <p class="small text-muted mb-2">{{ (g.description or '')[:300] }}{% if (g.description or '')|length > 300 %}...{% endif %}</p>
+                                                    <a href="{{ url_for('dashboard.grant_detail', grant_id=g.id) }}" class="btn btn-gradient-yellow btn-sm">View grant details</a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <p class="text-muted small mb-0 py-3">No grants in this status.</p>
+                                    {% endfor %}
+                                </div>
+                            </div>
                             {% endfor %}
                         </div>
-                    {% else %}
-                        <div class="alert alert-info">
-                            <h5>No applications yet</h5>
-                            <p>Start applying for grants! Go to "Add Grants" tab to find opportunities.</p>
-                        </div>
-                    {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Quarter selection modal (add grant to portfolio) -->
+    <!-- Contact Add/Edit modal -->
+    <div class="modal fade" id="contactModal" tabindex="-1" aria-labelledby="contactModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="contactModalLabel">Add Contact</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="form-contact">
+                        <input type="hidden" name="contact_id" id="contact-form-id" value="">
+                        <div class="mb-3">
+                            <label class="form-label small text-muted" for="contact-category">Category</label>
+                            <select class="form-select" name="category" id="contact-category" required>
+                                <option value="">Select category</option>
+                                <option value="Grant Advisors">Grant Advisors</option>
+                                <option value="Bank / Loan Contact">Bank / Loan Contact</option>
+                                <option value="Investors">Investors</option>
+                                <option value="SR & ED Advisors">SR & ED Advisors</option>
+                                <option value="Grant Consultants / Writers">Grant Consultants / Writers</option>
+                                <option value="Other Contacts">Other Contacts</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted" for="contact-organization">Organization</label>
+                            <input type="text" class="form-control" name="organization" id="contact-organization" placeholder="Organization">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted" for="contact-name">Contact Name</label>
+                            <input type="text" class="form-control" name="contact_name" id="contact-name" placeholder="Contact name">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted" for="contact-email">Email</label>
+                            <input type="email" class="form-control" name="email" id="contact-email" placeholder="Email">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted" for="contact-phone">Phone</label>
+                            <input type="text" class="form-control" name="phone" id="contact-phone" placeholder="Phone">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted" for="contact-role">Role</label>
+                            <input type="text" class="form-control" name="role" id="contact-role" placeholder="Role">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-gradient-gray btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-gradient-yellow btn-sm" id="contact-form-save">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quarter selection modal (save grant with planned quarter) -->
     <div class="modal fade" id="quarterModal" tabindex="-1" aria-labelledby="quarterModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="quarterModalLabel">Add to Grant Portfolio</h5>
+                    <h5 class="modal-title" id="quarterModalLabel">Save grant</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="text-muted small mb-3">Choose the quarter for which you are adding this grant.</p>
+                    <p class="text-muted small mb-3">Choose the quarter you plan to apply for this grant.</p>
                     <div id="quarter-options" class="d-grid gap-2"></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Apply grant confirmation (submit status) -->
+    <div class="modal fade" id="grantApplyConfirmModal" tabindex="-1" aria-labelledby="grantApplyConfirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="grantApplyConfirmModalLabel">Confirm submission</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="grant-apply-confirm-message" class="mb-0">Do you want to mark this grant as Submitted?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-gradient-gray btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-gradient-yellow btn-sm" id="btn-confirm-grant-apply">Confirm</button>
                 </div>
             </div>
         </div>
@@ -817,7 +1039,7 @@
                     <div class="modal-body">
                         <div class="mb-3">
                             <label class="form-label">Company Name</label>
-                            <input type="text" class="form-control" value="{{ (user and user.get('company_name')) or '' }}" disabled>
+                            <input type="text" class="form-control" value="{{ (company and (company.company_name or company.operating_name or company.legal_entity_name)) or '' }}" disabled>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -825,6 +1047,25 @@
                         <button type="submit" class="btn btn-primary">Save Changes</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact delete confirmation modal -->
+    <div class="modal fade" id="contactDeleteModal" tabindex="-1" aria-labelledby="contactDeleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="contactDeleteModalLabel">Confirm delete</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0">Delete this contact?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-gradient-gray" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-gradient-yellow" id="btn-confirm-contact-delete">Confirm</button>
+                </div>
             </div>
         </div>
     </div>
@@ -860,7 +1101,6 @@
                                 <input type="text" class="form-control" name="cvc" placeholder="123" maxlength="4">
                             </div>
                         </div>
-                        <p class="small text-muted mt-2 mb-0">Only secure information is stored (e.g. last 4 digits, card brand). Full card number and CVC are never stored.</p>
                         <div class="form-check mt-3 d-none" id="payment-save-for-future-wrap">
                             <input type="checkbox" class="form-check-input" id="payment-save-for-future" name="save_for_future">
                             <label class="form-check-label small text-muted" for="payment-save-for-future">Save this payment method for future billing</label>

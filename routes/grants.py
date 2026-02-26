@@ -1,4 +1,4 @@
-"""Apply grant, update status, add/remove from portfolio."""
+"""Apply grant (future flow), update status, save/remove saved grants."""
 from flask import Blueprint, request, session, jsonify, url_for
 
 from utils.database import Database
@@ -24,7 +24,7 @@ def apply_grant():
         }), 403
 
     try:
-        Database.apply_for_grant(user_id, grant_id)
+        Database.apply_for_grant_company(company["id"], grant_id)
         return jsonify({"success": True, "message": "Grant application started"}), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -38,10 +38,12 @@ def update_grant_status_route():
     data = request.json
     grant_id = data.get("grant_id")
     status = data.get("status")
-    user_id = session["user_id"]
+    company_id = Database.get_current_company_id(session.get("user_id"), create_if_missing=False)
+    if not company_id:
+        return jsonify({"error": "No company"}), 403
 
     try:
-        Database.update_grant_status(user_id, grant_id, status)
+        Database.update_grant_status_company(company_id, grant_id, status)
         return jsonify({"success": True, "message": "Status updated"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -69,8 +71,8 @@ def add_grant_to_portfolio_route():
         return jsonify({"error": "Quarter is required"}), 400
 
     try:
-        Database.add_grant_to_portfolio(user_id, grant_id, quarter)
-        return jsonify({"success": True, "message": "Grant added to portfolio"}), 201
+        Database.add_grant_to_portfolio_company(company["id"], grant_id, quarter)
+        return jsonify({"success": True, "message": "Grant saved"}), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -82,13 +84,15 @@ def remove_grant_from_portfolio_route():
 
     data = request.json
     grant_id = data.get("grant_id")
-    user_id = session["user_id"]
+    company_id = Database.get_current_company_id(session.get("user_id"), create_if_missing=False)
+    if not company_id:
+        return jsonify({"error": "No company"}), 403
 
     if grant_id is None:
         return jsonify({"error": "grant_id is required"}), 400
 
     try:
-        Database.remove_grant_from_portfolio(user_id, grant_id)
-        return jsonify({"success": True, "message": "Grant removed from portfolio"}), 200
+        Database.remove_grant_from_portfolio_company(company_id, grant_id)
+        return jsonify({"success": True, "message": "Grant removed from saved list"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500

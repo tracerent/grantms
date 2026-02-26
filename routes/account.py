@@ -1,6 +1,7 @@
 """Profile, company, team, payment methods, subscription upgrade."""
 from datetime import datetime
 from flask import Blueprint, request, redirect, url_for, session, flash, jsonify
+from werkzeug.security import generate_password_hash
 
 from utils.database import Database
 
@@ -87,10 +88,9 @@ def api_account_company():
     if "user_id" not in session:
         return jsonify({"error": "Not logged in"}), 401
     data = request.get_json() or {}
-    user_id = session["user_id"]
-    company = Database.get_company_for_user(user_id)
+    company = Database.get_current_company(session.get("user_id"), create_if_missing=True)
     if not company:
-        company = Database.create_company_for_user(user_id)
+        return jsonify({"error": "Could not load or create company"}), 400
     Database.update_company_subscription(company["id"])
     try:
         Database.update_company(
@@ -124,9 +124,10 @@ def api_account_team_add():
     user = Database.get_user_by_id(user_id)
     if not user:
         return jsonify({"error": "User not found"}), 401
-    company = Database.get_company_for_user(user_id)
+    company = Database.get_current_company(session.get("user_id"))
     if not company:
         return jsonify({"error": "No company associated with your account"}), 400
+    # Use logged-in user's company for the new member so company_id is always set and they see the same company data
     plan_max = Database.get_subscription_max_members(company["id"])
     current_count = len(Database.get_company_members(company["id"]))
     if current_count >= plan_max:
@@ -136,13 +137,22 @@ def api_account_team_add():
     last_name = (data.get("last_name") or "").strip()
     email = (data.get("email") or "").strip()
     job_title = (data.get("job_title") or "").strip()
+    password = (data.get("password") or "").strip()
     if not email:
         return jsonify({"error": "Email is required"}), 400
+    if not password:
+        return jsonify({"error": "Password is required"}), 400
+    if len(password) < 6:
+        return jsonify({"error": "Password must be at least 6 characters"}), 400
+    existing_user = Database.get_user_by_email(email)
+    if existing_user:
+        return jsonify({"error": "This email is already registered. Use a different email or ask them to sign in with their existing account."}), 400
+    password_hash = generate_password_hash(password)
     try:
-        new_id = Database.add_team_member(company["id"], first_name, last_name, email, job_title)
+        new_id = Database.add_team_member(company["id"], first_name, last_name, email, job_title, password_hash)
         if new_id:
             return jsonify({"success": True, "user_id": new_id})
-        return jsonify({"error": "Could not add member (email may already be registered)"}), 400
+        return jsonify({"error": "Could not add member. Please try again."}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -166,7 +176,7 @@ def api_account_team_toggle_active():
         return jsonify({"error": "Invalid user_id"}), 400
     if target_id == user_id:
         return jsonify({"error": "You cannot change your own status"}), 400
-    company = Database.get_company_for_user(user_id)
+    company = Database.get_current_company(session.get("user_id"))
     if not company:
         return jsonify({"error": "No company"}), 400
     members = Database.get_company_members(company["id"])
@@ -183,8 +193,7 @@ def api_account_payment_methods_add():
     """Add a payment method for the current user's company."""
     if "user_id" not in session:
         return jsonify({"error": "Not logged in"}), 401
-    user_id = session["user_id"]
-    company = Database.get_company_for_user(user_id)
+    company = Database.get_current_company(session.get("user_id"))
     if not company:
         return jsonify({"error": "No company associated with your account"}), 400
     data = request.get_json() or {}
@@ -255,8 +264,7 @@ def api_account_payment_methods_add():
 def api_account_payment_methods_remove():
     if "user_id" not in session:
         return jsonify({"error": "Not logged in"}), 401
-    user_id = session["user_id"]
-    company = Database.get_company_for_user(user_id)
+    company = Database.get_current_company(session.get("user_id"))
     if not company:
         return jsonify({"error": "No company associated with your account"}), 400
     data = request.get_json() or {}
@@ -278,7 +286,7 @@ def api_account_payment_methods_remove():
 def api_account_payment_methods_set_default():
     if "user_id" not in session:
         return jsonify({"error": "Not logged in"}), 401
-    company = Database.get_company_for_user(session["user_id"])
+    company = Database.get_current_company(session.get("user_id"))
     if not company:
         return jsonify({"error": "No company associated with your account"}), 400
     data = request.get_json() or {}
@@ -300,7 +308,7 @@ def api_account_payment_methods_set_default():
 def api_account_payment_methods_clear_default():
     if "user_id" not in session:
         return jsonify({"error": "Not logged in"}), 401
-    company = Database.get_company_for_user(session["user_id"])
+    company = Database.get_current_company(session.get("user_id"))
     if not company:
         return jsonify({"error": "No company associated with your account"}), 400
     try:
@@ -318,7 +326,7 @@ def api_account_subscription_upgrade():
             return jsonify({"error": "Not logged in"}), 401
         flash("Please sign in to change your plan.", "warning")
         return redirect(url_for("auth.signin"))
-    company = Database.get_company_for_user(session["user_id"])
+    company = Database.get_current_company(session.get("user_id"))
     if not company:
         if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return jsonify({"error": "No company associated with your account."}), 400

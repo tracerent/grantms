@@ -79,7 +79,25 @@ class Database:
 
     @staticmethod
     def init_db():
-        """Initialize database with tables if they don't exist. Drop and recreate DB when schema changes."""
+        """Initialize database: create the database if it doesn't exist, then create all tables if they don't exist. No ALTER or migrations."""
+        db_name = DB_CONFIG.get("database", "grantms")
+        # Escape backticks in identifier (MySQL); PyMySQL %s is for values, not identifiers
+        db_name_escaped = db_name.replace("\\", "\\\\").replace("`", "``")
+        conn_without_db = {k: v for k, v in DB_CONFIG.items() if k != "database"}
+        try:
+            conn = pymysql.connect(**conn_without_db)
+            try:
+                with conn.cursor() as cursor:
+                    cursor.execute(
+                        "CREATE DATABASE IF NOT EXISTS `"
+                        + db_name_escaped
+                        + "` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
+                    )
+                    conn.commit()
+            finally:
+                conn.close()
+        except Exception:
+            pass
         connection = get_db()
         try:
             with connection.cursor() as cursor:
@@ -107,7 +125,7 @@ class Database:
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
                 """)
 
-                # Users table (company_id references company; email is the unique identifier)
+                # Users table: only user fields + company_id (company name lives in company table, joined when needed)
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS users (
                         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -116,7 +134,6 @@ class Database:
                         email VARCHAR(255) UNIQUE NOT NULL,
                         password VARCHAR(255),
                         job_title VARCHAR(255),
-                        company_name VARCHAR(255),
                         company_id INT NULL,
                         is_primary TINYINT(1) DEFAULT 0,
                         is_active TINYINT(1) DEFAULT 1,
@@ -217,20 +234,20 @@ class Database:
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
                 """)
 
-                # User Grants table: one row per (user_id, grant_id); year and quarter (numerical) from star flow
+                # Company grants: shared saved grants and applications for all users in the company
                 cursor.execute("""
-                    CREATE TABLE IF NOT EXISTS user_grants (
+                    CREATE TABLE IF NOT EXISTS company_grants (
                         id INT AUTO_INCREMENT PRIMARY KEY,
-                        user_id INT NOT NULL,
+                        company_id INT NOT NULL,
                         grant_id INT NOT NULL,
                         year INT NOT NULL,
                         quarter INT NOT NULL,
-                        status VARCHAR(50) DEFAULT 'Added',
+                        status VARCHAR(50) DEFAULT 'Saved',
                         applied_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         notes TEXT,
-                        FOREIGN KEY (user_id) REFERENCES users(id),
+                        FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE,
                         FOREIGN KEY (grant_id) REFERENCES grants(id),
-                        UNIQUE(user_id, grant_id)
+                        UNIQUE(company_id, grant_id)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
                 """)
 
@@ -239,81 +256,6 @@ class Database:
                 if cursor.fetchone()["n"] == 0:
                     _seed_sample_grants(cursor)
                     connection.commit()
-
-                # Optional: add new columns if table already existed
-                for stmt in [
-                    "ALTER TABLE users ADD COLUMN is_primary TINYINT(1) DEFAULT 0",
-                    "ALTER TABLE users ADD COLUMN is_active TINYINT(1) DEFAULT 1",
-                ]:
-                    try:
-                        cursor.execute(stmt)
-                        connection.commit()
-                    except (pymysql.OperationalError, pymysql.InternalError) as e:
-                        if "Duplicate column" not in str(e) and "1060" not in str(e):
-                            raise
-                try:
-                    cursor.execute("ALTER TABLE users DROP COLUMN username")
-                    connection.commit()
-                except (pymysql.OperationalError, pymysql.InternalError):
-                    pass
-                try:
-                    cursor.execute("ALTER TABLE users DROP COLUMN company_description")
-                    connection.commit()
-                except (pymysql.OperationalError, pymysql.InternalError):
-                    pass
-                try:
-                    cursor.execute("ALTER TABLE company DROP COLUMN plan")
-                    connection.commit()
-                except (pymysql.OperationalError, pymysql.InternalError):
-                    pass
-                try:
-                    cursor.execute("ALTER TABLE company ADD COLUMN list_building_filters TEXT")
-                    connection.commit()
-                except (pymysql.OperationalError, pymysql.InternalError) as e:
-                    if "Duplicate column" not in str(e) and "1060" not in str(e):
-                        raise
-                try:
-                    cursor.execute("""
-                        UPDATE company c
-                        INNER JOIN (
-                            SELECT company_id, MIN(list_building_filters) AS list_building_filters
-                            FROM users
-                            WHERE company_id IS NOT NULL AND list_building_filters IS NOT NULL AND list_building_filters != ''
-                            GROUP BY company_id
-                        ) u ON u.company_id = c.id
-                        SET c.list_building_filters = u.list_building_filters
-                    """)
-                    connection.commit()
-                except Exception:
-                    pass
-                try:
-                    cursor.execute("ALTER TABLE users DROP COLUMN list_building_filters")
-                    connection.commit()
-                except (pymysql.OperationalError, pymysql.InternalError):
-                    pass
-                try:
-                    cursor.execute("""
-                        UPDATE users u
-                        INNER JOIN (
-                            SELECT company_id, MIN(id) AS mid FROM users WHERE company_id IS NOT NULL GROUP BY company_id
-                        ) t ON u.company_id = t.company_id AND u.id = t.mid
-                        SET u.is_primary = 1
-                    """)
-                    connection.commit()
-                except Exception:
-                    pass
-
-                try:
-                    cursor.execute("""
-                        INSERT INTO company_subscription (company_id, subscription_id, status, started_at, ends_at)
-                        SELECT c.id, 0, 'active', CURRENT_TIMESTAMP, TIMESTAMP(DATE_ADD(CURDATE(), INTERVAL 7 DAY))
-                        FROM company c
-                        LEFT JOIN company_subscription cs ON cs.company_id = c.id
-                        WHERE cs.id IS NULL
-                    """)
-                    connection.commit()
-                except Exception:
-                    pass
 
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS password_reset_tokens (
@@ -326,20 +268,71 @@ class Database:
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
                 """)
 
+                # Company contacts: organization, contact name, email, phone, role; category = one of the fixed contact categories
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS company_contact (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        company_id INT NOT NULL,
+                        category VARCHAR(100) NOT NULL,
+                        organization VARCHAR(255),
+                        contact_name VARCHAR(255),
+                        email VARCHAR(255),
+                        phone VARCHAR(64),
+                        role VARCHAR(255),
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                """)
+
+                # User-requested grants (admin can review/accept later)
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS requested_grants (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        company_id INT NOT NULL,
+                        user_id INT,
+                        funding_organization VARCHAR(255) NOT NULL,
+                        program_name VARCHAR(255) NOT NULL,
+                        funding_description TEXT,
+                        link_to_grant VARCHAR(2048) NOT NULL,
+                        status VARCHAR(50) DEFAULT 'pending',
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE,
+                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                """)
+
+                # Grant messages (message board per company grant)
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS grant_messages (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        company_id INT NOT NULL,
+                        grant_id INT NOT NULL,
+                        user_id INT NULL,
+                        message TEXT NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (company_id) REFERENCES company(id) ON DELETE CASCADE,
+                        FOREIGN KEY (grant_id) REFERENCES grants(id) ON DELETE CASCADE,
+                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                """)
+
+                # Migrate legacy status: Added -> Saved
+                cursor.execute("UPDATE company_grants SET status = 'Saved' WHERE status = 'Added'")
                 connection.commit()
         finally:
             connection.close()
 
     @staticmethod
-    def create_user(first_name, last_name, email, password_hash, company_name):
-        """Create a new user (sign up with email/password). first_name, last_name; email is the unique identifier."""
+    def create_user(first_name, last_name, email, password_hash):
+        """Create a new user (sign up with email/password). Caller must set company_id via create_company_for_user(user_id, company_name=...) so the user is always mapped to a company."""
         connection = get_db()
         try:
             with connection.cursor() as cursor:
                 cursor.execute("""
-                    INSERT INTO users (first_name, last_name, email, password, company_name)
-                    VALUES (%s, %s, %s, %s, %s)
-                """, ((first_name or "").strip() or None, (last_name or "").strip() or None, email, password_hash, company_name or ""))
+                    INSERT INTO users (first_name, last_name, email, password)
+                    VALUES (%s, %s, %s, %s)
+                """, ((first_name or "").strip() or None, (last_name or "").strip() or None, email, password_hash))
                 connection.commit()
                 return cursor.lastrowid
         finally:
@@ -371,15 +364,15 @@ class Database:
             connection.close()
 
     @staticmethod
-    def create_oauth_user(email, name, company_name, provider, provider_id):
-        """Create user from OAuth. Email is the unique identifier. OAuth display name stored in first_name."""
+    def create_oauth_user(email, name, provider, provider_id):
+        """Create user from OAuth. Company name is stored only in the company table via create_company_for_user(user_id, company_name=...)."""
         connection = get_db()
         try:
             with connection.cursor() as cursor:
                 cursor.execute("""
-                    INSERT INTO users (first_name, last_name, email, password, company_name, auth_provider, auth_provider_id)
-                    VALUES (%s, NULL, %s, NULL, %s, %s, %s)
-                """, ((name or "").strip() or None, email, company_name or "", provider, provider_id))
+                    INSERT INTO users (first_name, last_name, email, password, auth_provider, auth_provider_id)
+                    VALUES (%s, NULL, %s, NULL, %s, %s)
+                """, ((name or "").strip() or None, email, provider, provider_id))
                 connection.commit()
                 return cursor.lastrowid
         finally:
@@ -392,6 +385,23 @@ class Database:
         try:
             with connection.cursor() as cursor:
                 cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+                return cursor.fetchone()
+        finally:
+            connection.close()
+
+    @staticmethod
+    def get_user_with_company(user_id):
+        """Get user by ID with company name from company table (users JOIN company). Use this when company name must come from company, not users.company_name."""
+        connection = get_db()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """SELECT u.*, c.company_name AS company_name
+                       FROM users u
+                       LEFT JOIN company c ON u.company_id = c.id
+                       WHERE u.id = %s""",
+                    (user_id,),
+                )
                 return cursor.fetchone()
         finally:
             connection.close()
@@ -477,7 +487,8 @@ class Database:
 
     @staticmethod
     def create_company_for_user(user_id, company_name=None):
-        """Create a new company (with optional company_name), assign basic plan, set user's company_id and is_primary=1.
+        """Create a new company, assign basic plan, set user's company_id and is_primary=1. Every user must have company_id set.
+        On signup, company_name is mandatory (caller must pass a non-empty name). When creating on the fly (e.g. get_current_company with create_if_missing), company_name may be omitted or empty.
         Basic plan: started_at = signup timestamp, ends_at = 7 days from signup. Returns the new company row."""
         connection = get_db()
         try:
@@ -502,6 +513,26 @@ class Database:
                 return Database.get_company_by_id(company_id)
         finally:
             connection.close()
+
+    @staticmethod
+    def get_current_company(user_id, create_if_missing=False):
+        """Get company row for the given user. If create_if_missing=True, create a company when missing.
+        Returns company dict or None. All database access for 'current user company' lives here."""
+        if not user_id:
+            return None
+        company = Database.get_company_for_user(user_id)
+        if company:
+            return company
+        if create_if_missing:
+            return Database.create_company_for_user(user_id, company_name="")
+        return None
+
+    @staticmethod
+    def get_current_company_id(user_id, create_if_missing=False):
+        """Get company_id for the given user. If create_if_missing=True, create a company when missing.
+        Returns company id or None. Delegates to get_current_company."""
+        company = Database.get_current_company(user_id, create_if_missing=create_if_missing)
+        return company["id"] if company else None
 
     @staticmethod
     def get_company_subscription(company_id):
@@ -925,10 +956,12 @@ class Database:
             connection.close()
 
     @staticmethod
-    def add_team_member(company_id, first_name, last_name, email, job_title):
+    def add_team_member(company_id, first_name, last_name, email, job_title, password_hash=None):
         """
-        Create a new user as team member for the company. Sets company_id, is_primary=0, is_active=1.
-        username = email. password = NULL (user must use forgot password to set). Returns new user id or None.
+        Create a new user as team member. Use the logged-in user's company: pass company_id from get_current_company(session['user_id']).
+        New user's company_id is set to this company so they see the same company data (grants, contacts, subscription, etc.).
+        Every user must have company_id; for add-member we do not create a new company—we use the inviter's company_id.
+        Sets is_primary=0, is_active=1. Returns new user id or None (e.g. duplicate email).
         """
         email = (email or "").strip()
         if not email:
@@ -938,17 +971,21 @@ class Database:
             with connection.cursor() as cursor:
                 cursor.execute(
                     """INSERT INTO users (first_name, last_name, email, password, job_title, company_id, is_primary, is_active)
-                       VALUES (%s, %s, %s, NULL, %s, %s, 0, 1)""",
+                       VALUES (%s, %s, %s, %s, %s, %s, 0, 1)""",
                     (
                         (first_name or "").strip() or None,
                         (last_name or "").strip() or None,
                         email,
+                        password_hash,
                         (job_title or "").strip() or None,
                         company_id,
                     ),
                 )
                 connection.commit()
                 return cursor.lastrowid
+        except pymysql.IntegrityError:
+            connection.rollback()
+            return None
         finally:
             connection.close()
 
@@ -1088,26 +1125,102 @@ class Database:
         finally:
             connection.close()
 
+    # --- Company grants (shared for all users in the company) ---
+
     @staticmethod
-    def apply_for_grant(user_id, grant_id):
-        """Apply for a grant (insert with current year/quarter)."""
+    def get_company_grants(company_id):
+        """Get grants saved for the company (shared by all users). Returns list with status, applied_date, notes, year, quarter."""
+        if not company_id:
+            return []
+        connection = get_db()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT g.*, cg.status, cg.applied_date, cg.notes, cg.year, cg.quarter FROM company_grants cg JOIN grants g ON cg.grant_id = g.id WHERE cg.company_id = %s ORDER BY cg.applied_date DESC",
+                    (company_id,),
+                )
+                return cursor.fetchall()
+        finally:
+            connection.close()
+
+    @staticmethod
+    def get_company_grant(company_id, grant_id):
+        """Get a single company grant (grant + status) or None."""
+        if not company_id or not grant_id:
+            return None
+        connection = get_db()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT g.*, cg.status, cg.applied_date, cg.notes, cg.year, cg.quarter FROM company_grants cg JOIN grants g ON cg.grant_id = g.id WHERE cg.company_id = %s AND cg.grant_id = %s LIMIT 1",
+                    (company_id, grant_id),
+                )
+                return cursor.fetchone()
+        finally:
+            connection.close()
+
+    @staticmethod
+    def get_grant_messages(company_id, grant_id):
+        """Get messages for a company grant, with user first_name. Order by created_at asc."""
+        if not company_id or not grant_id:
+            return []
+        connection = get_db()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """SELECT gm.id, gm.user_id, gm.message, gm.created_at,
+                              u.first_name, u.last_name
+                       FROM grant_messages gm
+                       LEFT JOIN users u ON u.id = gm.user_id
+                       WHERE gm.company_id = %s AND gm.grant_id = %s
+                       ORDER BY gm.created_at ASC""",
+                    (company_id, grant_id),
+                )
+                return cursor.fetchall()
+        finally:
+            connection.close()
+
+    @staticmethod
+    def add_grant_message(company_id, grant_id, user_id, message):
+        """Add a message to the grant message board. Returns new id or None."""
+        if not company_id or not grant_id or not (message or "").strip():
+            return None
+        connection = get_db()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "INSERT INTO grant_messages (company_id, grant_id, user_id, message) VALUES (%s, %s, %s, %s)",
+                    (company_id, grant_id, user_id or None, (message or "").strip()),
+                )
+                connection.commit()
+                return cursor.lastrowid
+        finally:
+            connection.close()
+
+    @staticmethod
+    def apply_for_grant_company(company_id, grant_id):
+        """Apply for a grant on behalf of the company (insert/update in company_grants)."""
+        if not company_id:
+            return None
         year, quarter = Utils.current_year_quarter()
         connection = get_db()
         try:
             with connection.cursor() as cursor:
                 cursor.execute("""
-                    INSERT INTO user_grants (user_id, grant_id, year, quarter, status)
+                    INSERT INTO company_grants (company_id, grant_id, year, quarter, status)
                     VALUES (%s, %s, %s, %s, 'Applied')
                     ON DUPLICATE KEY UPDATE status = 'Applied', year = %s, quarter = %s, applied_date = CURRENT_TIMESTAMP
-                """, (user_id, grant_id, year, quarter, year, quarter))
+                """, (company_id, grant_id, year, quarter, year, quarter))
                 connection.commit()
                 return cursor.lastrowid if cursor.lastrowid else True
         finally:
             connection.close()
 
-
     @staticmethod
-    def add_grant_to_portfolio(user_id, grant_id, quarter_str):
+    def add_grant_to_portfolio_company(company_id, grant_id, quarter_str):
+        """Save a grant for the company with planned quarter (List Building star/save)."""
+        if not company_id:
+            return None
         year, quarter = Utils.parse_quarter_string(quarter_str)
         if year is None or quarter is None:
             raise ValueError("Invalid quarter; expected e.g. '2026 Q2'")
@@ -1115,49 +1228,265 @@ class Database:
         try:
             with connection.cursor() as cursor:
                 cursor.execute("""
-                    INSERT INTO user_grants (user_id, grant_id, year, quarter, status)
-                    VALUES (%s, %s, %s, %s, 'Added')
-                    ON DUPLICATE KEY UPDATE year = %s, quarter = %s, status = 'Added', applied_date = CURRENT_TIMESTAMP
-                """, (user_id, grant_id, year, quarter, year, quarter))
+                    INSERT INTO company_grants (company_id, grant_id, year, quarter, status)
+                    VALUES (%s, %s, %s, %s, 'Saved')
+                    ON DUPLICATE KEY UPDATE year = %s, quarter = %s, status = 'Saved', applied_date = CURRENT_TIMESTAMP
+                """, (company_id, grant_id, year, quarter, year, quarter))
                 connection.commit()
                 return cursor.lastrowid if cursor.lastrowid else True
         finally:
             connection.close()
 
-
     @staticmethod
-    def update_grant_status(user_id, grant_id, status):
-        """Update grant application status."""
+    def update_grant_status_company(company_id, grant_id, status):
+        """Update grant application status for the company."""
+        if not company_id:
+            return 0
         connection = get_db()
         try:
             with connection.cursor() as cursor:
-                cursor.execute("UPDATE user_grants SET status = %s WHERE user_id = %s AND grant_id = %s", (status, user_id, grant_id))
+                cursor.execute("UPDATE company_grants SET status = %s WHERE company_id = %s AND grant_id = %s", (status, company_id, grant_id))
                 connection.commit()
                 return cursor.rowcount
         finally:
             connection.close()
 
-
     @staticmethod
-    def remove_grant_from_portfolio(user_id, grant_id):
-        """Remove a grant from the user's portfolio."""
+    def remove_grant_from_portfolio_company(company_id, grant_id):
+        """Remove a saved grant from the company's portfolio."""
+        if not company_id:
+            return 0
         connection = get_db()
         try:
             with connection.cursor() as cursor:
-                cursor.execute("DELETE FROM user_grants WHERE user_id = %s AND grant_id = %s", (user_id, grant_id))
+                cursor.execute("DELETE FROM company_grants WHERE company_id = %s AND grant_id = %s", (company_id, grant_id))
                 connection.commit()
                 return cursor.rowcount
         finally:
             connection.close()
 
+    # --- Company contacts (Contacts tab) ---
+    CONTACT_CATEGORIES = [
+        "Grant Advisors",
+        "Bank / Loan Contact",
+        "Investors",
+        "SR & ED Advisors",
+        "Grant Consultants / Writers",
+        "Other Contacts",
+    ]
 
     @staticmethod
-    def get_user_grants(user_id):
-        """Get grants applied by a user (includes portfolio with year and quarter)."""
+    def get_contacts(company_id, category=None, search=None):
+        """Get contacts for a company. category=None means all; search filters by organization, contact_name, email, phone, role."""
+        if not company_id:
+            return []
         connection = get_db()
         try:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT g.*, ug.status, ug.applied_date, ug.notes, ug.year, ug.quarter FROM user_grants ug JOIN grants g ON ug.grant_id = g.id WHERE ug.user_id = %s ORDER BY ug.applied_date DESC", (user_id,))
+                sql = "SELECT * FROM company_contact WHERE company_id = %s"
+                args = [company_id]
+                if category:
+                    sql += " AND category = %s"
+                    args.append(category)
+                if search and search.strip():
+                    q = "%" + search.strip().replace("%", "\\%").replace("_", "\\_") + "%"
+                    sql += " AND (organization LIKE %s OR contact_name LIKE %s OR email LIKE %s OR phone LIKE %s OR role LIKE %s)"
+                    args.extend([q] * 5)
+                sql += " ORDER BY category, contact_name"
+                cursor.execute(sql, args)
                 return cursor.fetchall()
+        finally:
+            connection.close()
+
+    @staticmethod
+    def get_contacts_for_user(user_id, category=None, search=None):
+        """Get contacts for the user's company via explicit join: users (user_id) -> company_id -> company_contact.
+        Ensures we always read contacts for the company linked to the user."""
+        if not user_id:
+            return []
+        connection = get_db()
+        try:
+            with connection.cursor() as cursor:
+                sql = """SELECT cc.* FROM company_contact cc
+                         INNER JOIN users u ON u.company_id = cc.company_id
+                         WHERE u.id = %s"""
+                args = [user_id]
+                if category:
+                    sql += " AND cc.category = %s"
+                    args.append(category)
+                if search and search.strip():
+                    q = "%" + search.strip().replace("%", "\\%").replace("_", "\\_") + "%"
+                    sql += " AND (cc.organization LIKE %s OR cc.contact_name LIKE %s OR cc.email LIKE %s OR cc.phone LIKE %s OR cc.role LIKE %s)"
+                    args.extend([q] * 5)
+                sql += " ORDER BY cc.category, cc.contact_name"
+                cursor.execute(sql, args)
+                return cursor.fetchall()
+        finally:
+            connection.close()
+
+    @staticmethod
+    def get_contact_category_counts_for_user(user_id):
+        """Return dict of category -> count for the user's company contacts (join: users -> company_contact)."""
+        if not user_id:
+            return {c: 0 for c in Database.CONTACT_CATEGORIES}
+        connection = get_db()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """SELECT cc.category, COUNT(*) AS cnt FROM company_contact cc
+                       INNER JOIN users u ON u.company_id = cc.company_id
+                       WHERE u.id = %s GROUP BY cc.category""",
+                    (user_id,),
+                )
+                rows = cursor.fetchall()
+            counts = {c: 0 for c in Database.CONTACT_CATEGORIES}
+            for r in rows:
+                if r["category"] in counts:
+                    counts[r["category"]] = r["cnt"]
+            return counts
+        finally:
+            connection.close()
+
+    @staticmethod
+    def get_contact_category_counts(company_id):
+        """Return dict of category -> count for company contacts."""
+        if not company_id:
+            return {c: 0 for c in Database.CONTACT_CATEGORIES}
+        connection = get_db()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT category, COUNT(*) AS cnt FROM company_contact WHERE company_id = %s GROUP BY category",
+                    (company_id,),
+                )
+                rows = cursor.fetchall()
+            counts = {c: 0 for c in Database.CONTACT_CATEGORIES}
+            for r in rows:
+                if r["category"] in counts:
+                    counts[r["category"]] = r["cnt"]
+            return counts
+        finally:
+            connection.close()
+
+    @staticmethod
+    def get_contact_by_id(contact_id, company_id):
+        """Get a single contact by id; must belong to company_id."""
+        if not company_id or not contact_id:
+            return None
+        connection = get_db()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT * FROM company_contact WHERE id = %s AND company_id = %s",
+                    (contact_id, company_id),
+                )
+                return cursor.fetchone()
+        finally:
+            connection.close()
+
+    @staticmethod
+    def create_contact(company_id, category, organization=None, contact_name=None, email=None, phone=None, role=None):
+        """Create a contact for the company. category must be one of CONTACT_CATEGORIES."""
+        if not company_id or category not in Database.CONTACT_CATEGORIES:
+            return None
+        connection = get_db()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """INSERT INTO company_contact (company_id, category, organization, contact_name, email, phone, role)
+                       VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+                    (
+                        company_id,
+                        category,
+                        (organization or "").strip() or None,
+                        (contact_name or "").strip() or None,
+                        (email or "").strip() or None,
+                        (phone or "").strip() or None,
+                        (role or "").strip() or None,
+                    ),
+                )
+                connection.commit()
+                return cursor.lastrowid
+        finally:
+            connection.close()
+
+    @staticmethod
+    def update_contact(contact_id, company_id, category=None, organization=None, contact_name=None, email=None, phone=None, role=None):
+        """Update a contact. Only provided fields are updated. Returns rowcount."""
+        if not company_id or not contact_id:
+            return 0
+        if category is not None and category not in Database.CONTACT_CATEGORIES:
+            return 0
+        connection = get_db()
+        try:
+            with connection.cursor() as cursor:
+                updates = []
+                args = []
+                if category is not None:
+                    updates.append("category = %s")
+                    args.append(category)
+                if organization is not None:
+                    updates.append("organization = %s")
+                    args.append((organization or "").strip() or None)
+                if contact_name is not None:
+                    updates.append("contact_name = %s")
+                    args.append((contact_name or "").strip() or None)
+                if email is not None:
+                    updates.append("email = %s")
+                    args.append((email or "").strip() or None)
+                if phone is not None:
+                    updates.append("phone = %s")
+                    args.append((phone or "").strip() or None)
+                if role is not None:
+                    updates.append("role = %s")
+                    args.append((role or "").strip() or None)
+                if not updates:
+                    return 0
+                args.extend([contact_id, company_id])
+                cursor.execute(
+                    "UPDATE company_contact SET " + ", ".join(updates) + " WHERE id = %s AND company_id = %s",
+                    args,
+                )
+                connection.commit()
+                return cursor.rowcount
+        finally:
+            connection.close()
+
+    @staticmethod
+    def delete_contact(contact_id, company_id):
+        """Delete a contact. Returns rowcount."""
+        if not company_id or not contact_id:
+            return 0
+        connection = get_db()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("DELETE FROM company_contact WHERE id = %s AND company_id = %s", (contact_id, company_id))
+                connection.commit()
+                return cursor.rowcount
+        finally:
+            connection.close()
+
+    @staticmethod
+    def create_requested_grant(company_id, user_id, funding_organization, program_name, funding_description, link_to_grant):
+        """Insert a user-requested grant for admin review. Returns new id or None."""
+        if not company_id or not (funding_organization or "").strip() or not (program_name or "").strip() or not (link_to_grant or "").strip():
+            return None
+        connection = get_db()
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """INSERT INTO requested_grants (company_id, user_id, funding_organization, program_name, funding_description, link_to_grant)
+                       VALUES (%s, %s, %s, %s, %s, %s)""",
+                    (
+                        company_id,
+                        user_id or None,
+                        (funding_organization or "").strip(),
+                        (program_name or "").strip(),
+                        (funding_description or "").strip() or None,
+                        (link_to_grant or "").strip(),
+                    ),
+                )
+                connection.commit()
+                return cursor.lastrowid
         finally:
             connection.close()

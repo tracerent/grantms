@@ -1,5 +1,5 @@
 <h4 class="mb-4 fw-bold">Manage Team Members</h4>
-<p class="text-muted mb-4">Based on your <strong>{{ plan_name }}</strong> plan, you can have up to <strong>{{ plan_max_members }}</strong> member(s).</p>
+<p class="text-muted mb-4">Based on your <strong>{{ plan_name }}</strong> plan, you can have up to <strong>{{ plan_max_members }}</strong> member(s). You have <strong>{{ team_members|length }}</strong> of <strong>{{ plan_max_members }}</strong> member(s) added.</p>
 <div class="row g-4">
     <div class="col-lg-5">
         <div class="home-section account-section h-100">
@@ -9,7 +9,7 @@
             <div class="account-section-inner">
                 <ul class="list-unstyled mb-0" id="team-members-list">
                     {% for m in team_members %}
-                    <li class="account-list-item d-flex justify-content-between align-items-center {% if m.get('is_active') != 1 %}opacity-75{% endif %}">
+                    <li class="account-list-item d-flex justify-content-between align-items-center">
                         <div>
                             <span class="fw-semibold">{{ m.get('first_name') or '—' }} {{ m.get('last_name') or '' }}</span>
                             {% if m.get('is_active') != 1 %}<span class="text-muted small ms-1">(Inactive)</span>{% endif %}
@@ -17,7 +17,7 @@
                         </div>
                         <div>
                             {% if m.get('id') != user.get('id') %}
-                            <button type="button" class="btn btn-sm btn-outline-secondary team-toggle-active" data-user-id="{{ m.id }}" data-is-active="{{ 1 if m.get('is_active') == 1 else 0 }}">
+                            <button type="button" class="btn btn-sm btn-gradient-yellow team-toggle-active" data-user-id="{{ m.id }}" data-is-active="{{ 1 if m.get('is_active') == 1 else 0 }}">
                                 {% if m.get('is_active') == 1 %}Deactivate{% else %}Activate{% endif %}
                             </button>
                             {% endif %}
@@ -54,6 +54,10 @@
                         <div class="col-md-6">
                             <label class="form-label small text-muted">Job Title</label>
                             <input type="text" class="form-control" name="job_title" placeholder="Job title" {% if team_members|length >= plan_max_members %}disabled{% endif %}>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted">Password</label>
+                            <input type="password" class="form-control" name="password" placeholder="Password (min 6 characters)" {% if team_members|length >= plan_max_members %}disabled{% else %}required{% endif %} minlength="6" autocomplete="new-password">
                         </div>
                         <div class="col-12">
                             {% if team_members|length >= plan_max_members %}

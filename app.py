@@ -16,12 +16,13 @@ Database.init_db()
 
 @app.context_processor
 def inject_current_user():
-    """Make current_user (email, first_name, last_name, display_name, etc.) available in all templates when logged in."""
+    """Make current_user (email, first_name, last_name, display_name, company_name from company, etc.) available in all templates when logged in. Company name is always from company table (join), not users.company_name."""
     if session.get("user_id"):
-        user = Database.get_user_by_id(session["user_id"])
+        user = Database.get_user_with_company(session["user_id"])
         if user:
             u = dict(user)
             u["display_name"] = Utils.get_user_display_name(user)
+            # company_name in u is from company table (join in get_user_with_company); use for display
             return {"current_user": u}
     return {"current_user": None}
 

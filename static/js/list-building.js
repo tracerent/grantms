@@ -1,5 +1,5 @@
 /**
- * List Building: sort, search, filter, pagination, accordion list, add to portfolio (quarter modal).
+ * List Building: sort, search, filter, pagination, accordion list, save grant (quarter modal).
  */
 (function() {
     var GRANTS_PER_PAGE = 10;
@@ -221,7 +221,7 @@
                 '    <span class="accordion-collapse-chevron flex-shrink-0 me-2"><i class="bi bi-chevron-down"></i></span>' +
                 '  </div>' +
                 '  <div class="d-flex align-items-center pe-3 flex-shrink-0">' +
-                '    <button type="button" class="btn btn-link btn-sm p-0 lb-star-btn text-warning" data-grant-id="' + grant.id + '" aria-label="Add to portfolio">' +
+                '    <button type="button" class="btn btn-link btn-sm p-0 lb-star-btn text-warning" data-grant-id="' + grant.id + '" aria-label="Save grant">' +
                 (inPortfolio ? '<i class="bi bi-star-fill"></i>' : '<i class="bi bi-star"></i>') +
                 '    </button>' +
                 '  </div>' +
